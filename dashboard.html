@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TradeLayer Dashboard</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: Arial; padding: 20px; }
+        .card { background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; border-bottom: 1px solid #334155; text-align: left; }
+        th { color: #94a3b8; }
+        .green { color: #22c55e; }
+        .red { color: #ef4444; }
+        button {
+            background: #22c55e;
+            border: none;
+            padding: 5px 10px;
+            color: black;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .pl {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>TradeLayer Dashboard</h1>
+
+<div class="card">
+    <h2>Portfolio</h2>
+    <div id="portfolioPL" class="pl">Loading...</div>
+</div>
+
+<div class="card">
+    <h2>Top Trade</h2>
+    <pre id="topTrade">Loading...</pre>
+</div>
+
+<div class="card">
+    <h2>Trade Opportunities</h2>
+    <table id="tradeTable"></table>
+</div>
+
+<div class="card">
+    <h2>Watchlist</h2>
+    <table id="watchTable"></table>
+</div>
+
+<div class="card">
+    <h2>Placed Trades</h2>
+    <table id="placedTable"></table>
+</div>
+
+<script>
+
+async function logTrade(trade) {
+    await fetch("http://127.0.0.1:8000/log-trade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(trade)
+    });
+
+    alert("Trade logged!");
+    loadData();
+}
+
+async function loadData() {
+    try {
+        const res = await fetch("http://127.0.0.1:8000/trade-scan");
+        const data = await res.json();
+
+        document.getElementById("topTrade").textContent =
+            JSON.stringify(data.top_trade, null, 2);
+
+        // Portfolio P/L
+        const portRes = await fetch("http://127.0.0.1:8000/portfolio");
+        const portfolio = await portRes.json();
+
+        const pl = portfolio.open_pl;
+        const plElement = document.getElementById("portfolioPL");
+
+        plElement.textContent = `$${pl.toFixed(2)}`;
+        plElement.className = "pl " + (pl >= 0 ? "green" : "red");
+
+        // Trade Opportunities
+        let tradeHTML = `
+            <tr>
+                <th>Symbol</th>
+                <th>Entry</th>
+                <th>Stop</th>
+                <th>Target</th>
+                <th>Score</th>
+                <th>Action</th>
+            </tr>
+        `;
+
+        data.trade_opportunities.forEach(t => {
+
+            const tradeData = {
+                symbol: t.symbol,
+                entry: t.entry,
+                stop_loss: t.stop_loss,
+                target: t.target,
+                shares: 10,
+                status: "open"
+            };
+
+            tradeHTML += `
+                <tr>
+                    <td>${t.symbol}</td>
+                    <td>${t.entry}</td>
+                    <td>${t.stop_loss}</td>
+                    <td>${t.target}</td>
+                    <td>${t.score}</td>
+                    <td>
+                        <button onclick='logTrade(${JSON.stringify(tradeData)})'>
+                            Log Trade
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("tradeTable").innerHTML = tradeHTML;
+
+        // Watchlist
+        let watchHTML = `
+            <tr>
+                <th>Symbol</th>
+                <th>Entry</th>
+                <th>Score</th>
+                <th>Reason</th>
+            </tr>
+        `;
+
+        data.watchlist.forEach(t => {
+            watchHTML += `
+                <tr>
+                    <td>${t.symbol}</td>
+                    <td>${t.entry}</td>
+                    <td>${t.score}</td>
+                    <td>${t.rank_reason}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("watchTable").innerHTML = watchHTML;
+
+        // Placed Trades
+        const logRes = await fetch("http://127.0.0.1:8000/trade-log");
+        const trades = await logRes.json();
+
+        let placedHTML = `
+            <tr>
+                <th>Symbol</th>
+                <th>Entry</th>
+                <th>Shares</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+        `;
+
+        trades.forEach(t => {
+            placedHTML += `
+                <tr>
+                    <td>${t.symbol}</td>
+                    <td>${t.entry}</td>
+                    <td>${t.shares}</td>
+                    <td>${t.status}</td>
+                    <td>${t.timestamp}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("placedTable").innerHTML = placedHTML;
+
+    } catch (err) {
+        document.getElementById("topTrade").textContent = "Error: " + err;
+    }
+}
+
+loadData();
+
+</script>
+
+</body>
+</html>
