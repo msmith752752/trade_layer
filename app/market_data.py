@@ -1,8 +1,9 @@
 import yfinance as yf
 
 
-def get_stock_data(symbol: str):
+def get_market_data(symbol: str):
     try:
+        symbol = symbol.upper().strip()
         ticker = yf.Ticker(symbol)
 
         # Get recent daily data
@@ -27,11 +28,12 @@ def get_stock_data(symbol: str):
         daily_change_pct = ((current_price - prev_close) / prev_close) * 100
 
         return {
-            "price": current_price,
+            "symbol": symbol,
+            "price": round(current_price, 2),
             "volume": current_volume,
-            "avg_price_20": avg_price_20,
-            "avg_volume_20": avg_volume_20,
-            "daily_change_pct": daily_change_pct
+            "avg_price_20": round(avg_price_20, 2),
+            "avg_volume_20": int(avg_volume_20),
+            "daily_change_pct": round(daily_change_pct, 2)
         }
 
     except Exception as e:

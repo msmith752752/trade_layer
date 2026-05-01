@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from market_data import get_stock_data
-from trade_engine import generate_trade_signal
+from app.market_data import get_market_data
+from app.trade_engine import generate_trade_signal
 
 app = FastAPI()
 
@@ -13,10 +13,10 @@ def root():
 @app.get("/trade-signal")
 def get_trade_signal(symbol: str):
 
-    data = get_stock_data(symbol)
+    data = get_market_data(symbol)
 
-    if not data:
-        return {"error": "Could not fetch data"}
+    if not data or "error" in data:
+        return {"error": f"Could not fetch data for {symbol}"}
 
     signal = generate_trade_signal(symbol, data)
 
@@ -40,9 +40,9 @@ def trade_scan():
     failed_symbols = []
 
     for symbol in symbols:
-        data = get_stock_data(symbol)
+        data = get_market_data(symbol)
 
-        if not data:
+        if not data or "error" in data:
             failed_symbols.append(symbol)
             continue
 
@@ -57,6 +57,7 @@ def trade_scan():
         else:
             avoid.append(signal)
 
+    # Sort by score (highest first)
     trade_opportunities.sort(key=lambda x: x["score"], reverse=True)
     watchlist.sort(key=lambda x: x["score"], reverse=True)
     avoid.sort(key=lambda x: x["score"], reverse=True)
