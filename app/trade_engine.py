@@ -104,6 +104,12 @@ def generate_trade_signal(symbol: str, data: dict):
         "trade_suggestion": trade_suggestion,
         "score": score,
         "risk_reward": risk_reward,
+
+        # Trade plan context fields
+        "entry_type": "market",
+        "strategy": "momentum continuation",
+        "trade_plan_quality": "basic_fixed_risk_model",
+
         "rank_reason": rank_reason,
         "conditions": conditions,
         "daily_change_pct": round(daily_change, 2),

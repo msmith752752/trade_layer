@@ -20,6 +20,11 @@ def get_trade_signal(symbol: str):
 
     signal = generate_trade_signal(symbol, data)
 
+    # ✅ ADD CONTEXT FIELDS HERE
+    signal["entry_type"] = "market"
+    signal["strategy"] = "momentum continuation"
+    signal["trade_plan_quality"] = "basic_fixed_risk_model"
+
     return signal
 
 
@@ -47,6 +52,11 @@ def trade_scan():
             continue
 
         signal = generate_trade_signal(symbol, data)
+
+        # ✅ ADD CONTEXT FIELDS TO SCAN RESULTS TOO
+        signal["entry_type"] = "market"
+        signal["strategy"] = "momentum continuation"
+        signal["trade_plan_quality"] = "basic_fixed_risk_model"
 
         if signal["signal_type"] in ["strong_long", "long"]:
             trade_opportunities.append(signal)
