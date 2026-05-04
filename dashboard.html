@@ -6,53 +6,138 @@
 
     <style>
         body {
-            font-family: Arial;
-            background-color: #0b0f1a;
+            font-family: Arial, sans-serif;
+            background: #0b0f1a;
             color: white;
-            text-align: center;
+            margin: 0;
             padding: 40px;
         }
 
-        h1 {
-            margin-bottom: 30px;
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .header h1 {
+            margin-bottom: 8px;
+            font-size: 34px;
+        }
+
+        .header p {
+            color: #9ca3af;
+            margin: 0;
+            font-size: 15px;
         }
 
         .card {
-            background-color: #1a1f2e;
-            padding: 25px;
-            border-radius: 12px;
-            width: 400px;
+            background: #151b2b;
+            border: 1px solid #263044;
+            padding: 30px;
+            border-radius: 18px;
+            max-width: 620px;
             margin: auto;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+        }
+
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
         }
 
         .symbol {
-            font-size: 28px;
+            font-size: 44px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .badge {
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: #20304a;
+            color: #8fd3ff;
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .metric-box {
+            background: #0f1523;
+            border: 1px solid #263044;
+            border-radius: 14px;
+            padding: 16px;
+            text-align: left;
+        }
+
+        .label {
+            color: #9ca3af;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .value {
+            font-size: 22px;
             font-weight: bold;
         }
 
-        .price {
-            margin: 10px 0;
+        .details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 22px;
         }
 
-        .metric {
-            margin: 5px 0;
+        .detail-pill {
+            background: #101827;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            color: #d1d5db;
+            font-size: 14px;
         }
 
         .reason {
-            margin-top: 15px;
+            background: #0f1523;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            border-radius: 10px;
+            color: #d1d5db;
             font-size: 14px;
-            color: #aaa;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .loading {
+            text-align: center;
+            color: #9ca3af;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>TradeLayer — Top Trade</h1>
+    <div class="container">
+        <div class="header">
+            <h1>TradeLayer</h1>
+            <p>Top ranked trade setup from live market scan</p>
+        </div>
 
-    <div id="tradeCard" class="card">
-        Loading trade...
+        <div id="tradeCard" class="card">
+            <div class="loading">Loading top trade...</div>
+        </div>
     </div>
 
     <script>
@@ -63,22 +148,48 @@
             const trade = data.top_trade;
 
             if (!trade) {
-                document.getElementById("tradeCard").innerHTML = "No trades found.";
+                document.getElementById("tradeCard").innerHTML = `
+                    <div class="loading">No qualified trades found.</div>
+                `;
                 return;
             }
 
             document.getElementById("tradeCard").innerHTML = `
-                <div class="symbol">${trade.symbol}</div>
+                <div class="top-row">
+                    <div>
+                        <div class="label">Top Trade</div>
+                        <div class="symbol">${trade.symbol}</div>
+                    </div>
+                    <div class="badge">${trade.confidence} confidence</div>
+                </div>
 
-                <div class="price">Entry: $${trade.entry}</div>
-                <div class="metric">Target: $${trade.target}</div>
-                <div class="metric">Stop: $${trade.stop_loss}</div>
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <div class="label">Entry</div>
+                        <div class="value">$${trade.entry}</div>
+                    </div>
 
-                <div class="metric">Risk/Reward: ${trade.risk_reward}</div>
-                <div class="metric">Score: ${trade.score}</div>
-                <div class="metric">Confidence: ${trade.confidence}</div>
+                    <div class="metric-box">
+                        <div class="label">Target</div>
+                        <div class="value">$${trade.target}</div>
+                    </div>
 
-                <div class="reason">${trade.reason}</div>
+                    <div class="metric-box">
+                        <div class="label">Stop Loss</div>
+                        <div class="value">$${trade.stop_loss}</div>
+                    </div>
+                </div>
+
+                <div class="details">
+                    <div class="detail-pill">Score: ${trade.score}</div>
+                    <div class="detail-pill">Risk/Reward: ${trade.risk_reward}</div>
+                    <div class="detail-pill">${trade.strategy}</div>
+                </div>
+
+                <div class="reason">
+                    <strong>Why this trade:</strong><br>
+                    ${trade.reason}
+                </div>
             `;
         }
 
