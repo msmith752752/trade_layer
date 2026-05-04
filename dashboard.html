@@ -118,6 +118,51 @@
             font-size: 14px;
             line-height: 1.5;
             text-align: left;
+            margin-bottom: 22px;
+        }
+
+        .track-section {
+            background: #0f1523;
+            border: 1px solid #263044;
+            border-radius: 14px;
+            padding: 18px;
+            text-align: left;
+        }
+
+        .track-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: #0b0f1a;
+            color: white;
+            font-size: 15px;
+        }
+
+        button {
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: none;
+            background: #2563eb;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .message {
+            margin-top: 12px;
+            color: #9ca3af;
+            font-size: 14px;
         }
 
         .loading {
@@ -141,11 +186,14 @@
     </div>
 
     <script>
+        let currentTrade = null;
+
         async function loadTrade() {
             const response = await fetch("http://127.0.0.1:8000/trade-scan");
             const data = await response.json();
 
             const trade = data.top_trade;
+            currentTrade = trade;
 
             if (!trade) {
                 document.getElementById("tradeCard").innerHTML = `
@@ -190,7 +238,56 @@
                     <strong>Why this trade:</strong><br>
                     ${trade.reason}
                 </div>
+
+                <div class="track-section">
+                    <div class="label">Track this trade manually</div>
+                    <div class="track-row">
+                        <input id="sharesInput" type="number" min="1" placeholder="Enter shares">
+                        <button onclick="trackTrade()">Track Trade</button>
+                    </div>
+                    <div id="trackMessage" class="message"></div>
+                </div>
             `;
+        }
+
+        async function trackTrade() {
+            const shares = Number(document.getElementById("sharesInput").value);
+            const message = document.getElementById("trackMessage");
+
+            if (!currentTrade) {
+                message.innerText = "No trade available to track.";
+                return;
+            }
+
+            if (!shares || shares <= 0) {
+                message.innerText = "Enter a valid share amount first.";
+                return;
+            }
+
+            const tradeToLog = {
+                symbol: currentTrade.symbol,
+                entry: currentTrade.entry,
+                stop_loss: currentTrade.stop_loss,
+                target: currentTrade.target,
+                shares: shares,
+                status: "open",
+                source: "TradeLayer dashboard"
+            };
+
+            const response = await fetch("http://127.0.0.1:8000/log-trade", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(tradeToLog)
+            });
+
+            if (response.ok) {
+                message.innerText = `Tracked ${shares} shares of ${currentTrade.symbol}.`;
+                document.getElementById("sharesInput").value = "";
+            } else {
+                message.innerText = "Could not track trade. Check backend terminal.";
+            }
         }
 
         loadTrade();
