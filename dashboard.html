@@ -42,6 +42,7 @@
             max-width: 620px;
             margin: auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+            margin-bottom: 30px;
         }
 
         .top-row {
@@ -54,7 +55,6 @@
         .symbol {
             font-size: 44px;
             font-weight: bold;
-            letter-spacing: 1px;
         }
 
         .badge {
@@ -79,7 +79,6 @@
             border: 1px solid #263044;
             border-radius: 14px;
             padding: 16px;
-            text-align: left;
         }
 
         .label {
@@ -114,10 +113,6 @@
             border-left: 4px solid #3b82f6;
             padding: 16px;
             border-radius: 10px;
-            color: #d1d5db;
-            font-size: 14px;
-            line-height: 1.5;
-            text-align: left;
             margin-bottom: 22px;
         }
 
@@ -126,7 +121,6 @@
             border: 1px solid #263044;
             border-radius: 14px;
             padding: 18px;
-            text-align: left;
         }
 
         .track-row {
@@ -142,7 +136,6 @@
             border: 1px solid #334155;
             background: #0b0f1a;
             color: white;
-            font-size: 15px;
         }
 
         button {
@@ -155,143 +148,189 @@
             cursor: pointer;
         }
 
-        button:hover {
-            background: #1d4ed8;
-        }
-
         .message {
             margin-top: 12px;
             color: #9ca3af;
-            font-size: 14px;
         }
 
         .loading {
             text-align: center;
             color: #9ca3af;
         }
+
+        /* NEW TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #263044;
+        }
+
+        th {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        .profit {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .loss {
+            color: #ef4444;
+            font-weight: bold;
+        }
     </style>
 </head>
 
 <body>
 
-    <div class="container">
-        <div class="header">
-            <h1>TradeLayer</h1>
-            <p>Top ranked trade setup from live market scan</p>
-        </div>
+<div class="container">
 
-        <div id="tradeCard" class="card">
-            <div class="loading">Loading top trade...</div>
-        </div>
+    <div class="header">
+        <h1>TradeLayer</h1>
+        <p>Top ranked trade setup from live market scan</p>
     </div>
 
-    <script>
-        let currentTrade = null;
+    <div id="tradeCard" class="card">
+        <div class="loading">Loading top trade...</div>
+    </div>
 
-        async function loadTrade() {
-            const response = await fetch("http://127.0.0.1:8000/trade-scan");
-            const data = await response.json();
+    <!-- NEW SECTION -->
+    <div id="myTrades" class="card">
+        <div class="loading">Loading your trades...</div>
+    </div>
 
-            const trade = data.top_trade;
-            currentTrade = trade;
+</div>
 
-            if (!trade) {
-                document.getElementById("tradeCard").innerHTML = `
-                    <div class="loading">No qualified trades found.</div>
-                `;
-                return;
-            }
+<script>
+let currentTrade = null;
 
-            document.getElementById("tradeCard").innerHTML = `
-                <div class="top-row">
-                    <div>
-                        <div class="label">Top Trade</div>
-                        <div class="symbol">${trade.symbol}</div>
-                    </div>
-                    <div class="badge">${trade.confidence} confidence</div>
-                </div>
+async function loadTrade() {
+    const response = await fetch("http://127.0.0.1:8000/trade-scan");
+    const data = await response.json();
 
-                <div class="metric-grid">
-                    <div class="metric-box">
-                        <div class="label">Entry</div>
-                        <div class="value">$${trade.entry}</div>
-                    </div>
+    const trade = data.top_trade;
+    currentTrade = trade;
 
-                    <div class="metric-box">
-                        <div class="label">Target</div>
-                        <div class="value">$${trade.target}</div>
-                    </div>
+    if (!trade) {
+        document.getElementById("tradeCard").innerHTML = `
+            <div class="loading">No qualified trades found.</div>
+        `;
+        return;
+    }
 
-                    <div class="metric-box">
-                        <div class="label">Stop Loss</div>
-                        <div class="value">$${trade.stop_loss}</div>
-                    </div>
-                </div>
+    document.getElementById("tradeCard").innerHTML = `
+        <div class="top-row">
+            <div>
+                <div class="label">Top Trade</div>
+                <div class="symbol">${trade.symbol}</div>
+            </div>
+            <div class="badge">${trade.confidence} confidence</div>
+        </div>
 
-                <div class="details">
-                    <div class="detail-pill">Score: ${trade.score}</div>
-                    <div class="detail-pill">Risk/Reward: ${trade.risk_reward}</div>
-                    <div class="detail-pill">${trade.strategy}</div>
-                </div>
+        <div class="metric-grid">
+            <div class="metric-box">
+                <div class="label">Entry</div>
+                <div class="value">$${trade.entry}</div>
+            </div>
+            <div class="metric-box">
+                <div class="label">Target</div>
+                <div class="value">$${trade.target}</div>
+            </div>
+            <div class="metric-box">
+                <div class="label">Stop</div>
+                <div class="value">$${trade.stop_loss}</div>
+            </div>
+        </div>
 
-                <div class="reason">
-                    <strong>Why this trade:</strong><br>
-                    ${trade.reason}
-                </div>
+        <div class="track-section">
+            <div class="label">Track this trade</div>
+            <div class="track-row">
+                <input id="sharesInput" type="number" placeholder="Shares">
+                <button onclick="trackTrade()">Track</button>
+            </div>
+            <div id="trackMessage" class="message"></div>
+        </div>
+    `;
+}
 
-                <div class="track-section">
-                    <div class="label">Track this trade manually</div>
-                    <div class="track-row">
-                        <input id="sharesInput" type="number" min="1" placeholder="Enter shares">
-                        <button onclick="trackTrade()">Track Trade</button>
-                    </div>
-                    <div id="trackMessage" class="message"></div>
-                </div>
-            `;
-        }
+async function trackTrade() {
+    const shares = Number(document.getElementById("sharesInput").value);
+    const message = document.getElementById("trackMessage");
 
-        async function trackTrade() {
-            const shares = Number(document.getElementById("sharesInput").value);
-            const message = document.getElementById("trackMessage");
+    const tradeToLog = {
+        symbol: currentTrade.symbol,
+        entry: currentTrade.entry,
+        stop_loss: currentTrade.stop_loss,
+        target: currentTrade.target,
+        shares: shares,
+        status: "open"
+    };
 
-            if (!currentTrade) {
-                message.innerText = "No trade available to track.";
-                return;
-            }
+    await fetch("http://127.0.0.1:8000/log-trade", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(tradeToLog)
+    });
 
-            if (!shares || shares <= 0) {
-                message.innerText = "Enter a valid share amount first.";
-                return;
-            }
+    message.innerText = "Trade tracked.";
+    loadMyTrades(); // refresh
+}
 
-            const tradeToLog = {
-                symbol: currentTrade.symbol,
-                entry: currentTrade.entry,
-                stop_loss: currentTrade.stop_loss,
-                target: currentTrade.target,
-                shares: shares,
-                status: "open",
-                source: "TradeLayer dashboard"
-            };
+async function loadMyTrades() {
+    const res = await fetch("http://127.0.0.1:8000/trade-log");
+    const trades = await res.json();
 
-            const response = await fetch("http://127.0.0.1:8000/log-trade", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(tradeToLog)
-            });
+    if (!trades.length) {
+        document.getElementById("myTrades").innerHTML =
+            "<div class='loading'>No trades yet.</div>";
+        return;
+    }
 
-            if (response.ok) {
-                message.innerText = `Tracked ${shares} shares of ${currentTrade.symbol}.`;
-                document.getElementById("sharesInput").value = "";
-            } else {
-                message.innerText = "Could not track trade. Check backend terminal.";
-            }
-        }
+    let rows = "";
 
-        loadTrade();
-    </script>
+    for (let t of trades) {
+        const currentPrice = t.entry; // placeholder for now
+        const pl = (currentPrice - t.entry) * t.shares;
+
+        const plClass = pl >= 0 ? "profit" : "loss";
+
+        rows += `
+            <tr>
+                <td>${t.symbol}</td>
+                <td>${t.shares}</td>
+                <td>$${t.entry}</td>
+                <td>$${currentPrice}</td>
+                <td class="${plClass}">$${pl.toFixed(2)}</td>
+                <td>${t.status}</td>
+            </tr>
+        `;
+    }
+
+    document.getElementById("myTrades").innerHTML = `
+        <div class="label">My Trades</div>
+        <table>
+            <tr>
+                <th>Symbol</th>
+                <th>Shares</th>
+                <th>Entry</th>
+                <th>Current</th>
+                <th>P/L</th>
+                <th>Status</th>
+            </tr>
+            ${rows}
+        </table>
+    `;
+}
+
+loadTrade();
+loadMyTrades();
+</script>
 
 </body>
 </html>
