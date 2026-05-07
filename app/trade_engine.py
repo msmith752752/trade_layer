@@ -12,6 +12,11 @@ def generate_trade_signal(symbol: str, data: dict):
     avg_volume_20 = data["avg_volume_20"]
     daily_change = data["daily_change_pct"]
 
+    relative_strength_score = data.get("relative_strength_score", 0)
+    relative_strength_vs_spy = data.get("relative_strength_vs_spy")
+    relative_strength_label = data.get("relative_strength_label", "unknown")
+    spy_daily_change_pct = data.get("spy_daily_change_pct")
+
     conditions = {
         "price_range": 20 < price < 500,
         "above_20_ma": price > avg_price_20,
@@ -19,7 +24,10 @@ def generate_trade_signal(symbol: str, data: dict):
         "bullish_trend_structure": avg_price_20 > avg_price_50,
         "volume_spike": volume > (1.5 * avg_volume_20),
         "momentum": daily_change > 1,
-        "liquidity": avg_volume_20 > 1_000_000
+        "liquidity": avg_volume_20 > 1_000_000,
+        "relative_strength_positive": (
+            relative_strength_vs_spy is not None and relative_strength_vs_spy > 0
+        ),
     }
 
     entry = round(price, 2)
@@ -68,7 +76,7 @@ def generate_trade_signal(symbol: str, data: dict):
         overextended=overextended,
     )
 
-    score = technical_score + options_score + environment_score
+    score = technical_score + options_score + environment_score + relative_strength_score
 
     risk = entry - stop_loss
     reward = target - entry
@@ -116,6 +124,11 @@ def generate_trade_signal(symbol: str, data: dict):
         trade_suggestion = False
         reason = "Avoid: setup does not meet minimum trend and momentum conditions."
 
+    if relative_strength_label in ["underperformer", "strong_underperformer"]:
+        if signal_type in ["strong_long", "long"]:
+            confidence = "medium"
+            reason += " Relative strength is weak versus SPY, so confidence is reduced."
+
     if overextended:
         trade_timeframe = "same_day_only"
         expected_hold = "Hours to 1 trading day"
@@ -142,11 +155,11 @@ def generate_trade_signal(symbol: str, data: dict):
         exit_rule = "Avoid entering until conditions improve."
 
     if signal_type == "strong_long":
-        rank_reason = "Highest quality setup: trend, momentum, liquidity, volume, options overlay, and environment evaluation pass."
+        rank_reason = "Highest quality setup: trend, momentum, liquidity, volume, options overlay, environment evaluation, and relative strength are included in ranking."
     elif signal_type == "long":
-        rank_reason = "Good setup: bullish trend and momentum pass, but volume spike is missing."
+        rank_reason = "Good setup: bullish trend and momentum pass, but volume spike is missing. Relative strength is included in ranking."
     elif signal_type == "watchlist":
-        rank_reason = "Close setup: trend/liquidity pass, but missing momentum and/or volume confirmation."
+        rank_reason = "Close setup: trend/liquidity pass, but missing momentum and/or volume confirmation. Relative strength is included in ranking."
     else:
         rank_reason = "Weak setup. Does not meet minimum trade criteria."
 
@@ -163,6 +176,11 @@ def generate_trade_signal(symbol: str, data: dict):
         "technical_score": technical_score,
         "options_score": options_score,
         "environment_score": environment_score,
+        "relative_strength_score": relative_strength_score,
+
+        "spy_daily_change_pct": spy_daily_change_pct,
+        "relative_strength_vs_spy": relative_strength_vs_spy,
+        "relative_strength_label": relative_strength_label,
 
         "market_state": market_state,
         "state_reason": state_reason,

@@ -10,71 +10,78 @@
             background: #0b0f1a;
             color: white;
             margin: 0;
-            padding: 40px;
+            padding: 35px;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1250px;
             margin: auto;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: 30px;
         }
 
         .header h1 {
-            margin-bottom: 8px;
+            margin: 0;
             font-size: 34px;
         }
 
         .header p {
             color: #9ca3af;
-            margin: 0;
-            font-size: 15px;
+            margin-top: 8px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 0.7fr;
+            gap: 22px;
+            margin-bottom: 22px;
         }
 
         .card {
             background: #151b2b;
             border: 1px solid #263044;
-            padding: 30px;
             border-radius: 18px;
-            max-width: 620px;
-            margin: auto;
+            padding: 24px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.35);
-            margin-bottom: 30px;
-        }
-
-        .top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
         }
 
         .symbol {
-            font-size: 44px;
+            font-size: 48px;
             font-weight: bold;
         }
 
+        .subtitle {
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+            margin-bottom: 20px;
+        }
+
         .badge {
+            background: #1f2937;
+            color: #d1d5db;
             padding: 8px 14px;
             border-radius: 999px;
-            background: #20304a;
-            color: #8fd3ff;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
-            text-transform: uppercase;
         }
 
         .metric-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 14px;
-            margin-bottom: 22px;
+            margin-bottom: 20px;
         }
 
-        .metric-box {
+        .metric {
             background: #0f1523;
             border: 1px solid #263044;
             border-radius: 14px;
@@ -83,7 +90,7 @@
 
         .label {
             color: #9ca3af;
-            font-size: 13px;
+            font-size: 12px;
             margin-bottom: 8px;
         }
 
@@ -92,97 +99,84 @@
             font-weight: bold;
         }
 
-        .details {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 22px;
+        .green { color: #22c55e; }
+        .red { color: #ef4444; }
+        .yellow { color: #facc15; }
+
+        .section-title {
+            margin-bottom: 14px;
+            font-size: 18px;
         }
 
-        .detail-pill {
-            background: #101827;
-            border-radius: 12px;
-            padding: 12px;
-            text-align: center;
-            color: #d1d5db;
-            font-size: 14px;
-        }
-
-        .reason {
+        .why-box {
             background: #0f1523;
             border-left: 4px solid #3b82f6;
             padding: 16px;
             border-radius: 10px;
+            margin-top: 18px;
+        }
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .row {
+            background: #0f1523;
+            border: 1px solid #263044;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .row-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .row-symbol {
+            font-weight: bold;
+            font-size: 17px;
+        }
+
+        .row-score {
+            font-weight: bold;
+        }
+
+        .small {
+            color: #9ca3af;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .top-opportunities {
             margin-bottom: 22px;
         }
 
-        .track-section {
-            background: #0f1523;
-            border: 1px solid #263044;
-            border-radius: 14px;
-            padding: 18px;
+        .opportunity-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
         }
 
-        .track-row {
-            display: flex;
-            gap: 12px;
-            margin-top: 10px;
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            margin-top: 22px;
         }
 
-        input {
-            flex: 1;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid #334155;
-            background: #0b0f1a;
-            color: white;
-        }
+        @media(max-width: 1000px) {
+            .main-grid,
+            .bottom-grid,
+            .opportunity-grid {
+                grid-template-columns: 1fr;
+            }
 
-        button {
-            padding: 12px 18px;
-            border-radius: 10px;
-            border: none;
-            background: #2563eb;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .message {
-            margin-top: 12px;
-            color: #9ca3af;
-        }
-
-        .loading {
-            text-align: center;
-            color: #9ca3af;
-        }
-
-        /* NEW TABLE */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: center;
-            border-bottom: 1px solid #263044;
-        }
-
-        th {
-            color: #9ca3af;
-            font-size: 13px;
-        }
-
-        .profit {
-            color: #22c55e;
-            font-weight: bold;
-        }
-
-        .loss {
-            color: #ef4444;
-            font-weight: bold;
+            .metric-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
@@ -190,146 +184,194 @@
 <body>
 
 <div class="container">
-
     <div class="header">
         <h1>TradeLayer</h1>
-        <p>Top ranked trade setup from live market scan</p>
+        <p>Market structure + options strategy dashboard</p>
     </div>
 
-    <div id="tradeCard" class="card">
-        <div class="loading">Loading top trade...</div>
-    </div>
-
-    <!-- NEW SECTION -->
-    <div id="myTrades" class="card">
-        <div class="loading">Loading your trades...</div>
-    </div>
-
+    <div id="dashboard"></div>
 </div>
 
 <script>
-let currentTrade = null;
 
-async function loadTrade() {
+async function loadDashboard() {
     const response = await fetch("http://127.0.0.1:8000/trade-scan");
     const data = await response.json();
 
-    const trade = data.top_trade;
-    currentTrade = trade;
+    const top = data.top_trade;
 
-    if (!trade) {
-        document.getElementById("tradeCard").innerHTML = `
-            <div class="loading">No qualified trades found.</div>
-        `;
+    if (!top) {
+        document.getElementById("dashboard").innerHTML =
+            "<div class='card'>No trades found.</div>";
         return;
     }
 
-    document.getElementById("tradeCard").innerHTML = `
-        <div class="top-row">
-            <div>
-                <div class="label">Top Trade</div>
-                <div class="symbol">${trade.symbol}</div>
+    let rsClass = getRsClass(top.relative_strength_vs_spy);
+
+    document.getElementById("dashboard").innerHTML = `
+
+        <div class="main-grid">
+
+            <div class="card">
+                <div class="symbol">${top.symbol}</div>
+                <div class="subtitle">${top.market_state}</div>
+
+                <div class="badge-row">
+                    <div class="badge">${top.action_label}</div>
+                    <div class="badge">${top.recommended_strategy}</div>
+                    <div class="badge">${top.options_pressure}</div>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="label">Entry</div>
+                        <div class="value">$${top.entry}</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="label">Target</div>
+                        <div class="value green">$${top.target}</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="label">Stop</div>
+                        <div class="value red">$${top.stop_loss}</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="label">Score</div>
+                        <div class="value">${top.score}</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="label">RS vs SPY</div>
+                        <div class="value ${rsClass}">${top.relative_strength_vs_spy}%</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="label">Expected Hold</div>
+                        <div class="value">${top.expected_hold}</div>
+                    </div>
+                </div>
+
+                <div class="why-box">
+                    <div class="section-title">Why This Strategy</div>
+                    ${(top.strategy_reason || [])
+                        .map(r => `<div class="small">• ${r}</div>`)
+                        .join("")}
+                </div>
             </div>
-            <div class="badge">${trade.confidence} confidence</div>
+
+            <div class="card">
+                <div class="section-title">Trade Summary</div>
+
+                <div class="small">
+                    <strong>Market State:</strong><br>
+                    ${top.state_reason}
+                </div>
+
+                <br>
+
+                <div class="small">
+                    <strong>Rank Reason:</strong><br>
+                    ${top.rank_reason}
+                </div>
+
+                <br>
+
+                <div class="small">
+                    <strong>Exit Rule:</strong><br>
+                    ${top.exit_rule}
+                </div>
+
+                <br>
+
+                <div class="small">
+                    <strong>Options Summary:</strong><br>
+                    ${top.options_summary}
+                </div>
+            </div>
+
         </div>
 
-        <div class="metric-grid">
-            <div class="metric-box">
-                <div class="label">Entry</div>
-                <div class="value">$${trade.entry}</div>
-            </div>
-            <div class="metric-box">
-                <div class="label">Target</div>
-                <div class="value">$${trade.target}</div>
-            </div>
-            <div class="metric-box">
-                <div class="label">Stop</div>
-                <div class="value">$${trade.stop_loss}</div>
+        <div class="card top-opportunities">
+            <div class="section-title">Top Opportunities</div>
+            <div class="opportunity-grid">
+                ${renderOpportunityCards(data.trade_opportunities)}
             </div>
         </div>
 
-        <div class="track-section">
-            <div class="label">Track this trade</div>
-            <div class="track-row">
-                <input id="sharesInput" type="number" placeholder="Shares">
-                <button onclick="trackTrade()">Track</button>
+        <div class="bottom-grid">
+            <div class="card">
+                <div class="section-title">Watchlist</div>
+                <div class="list">
+                    ${renderRows(data.watchlist)}
+                </div>
             </div>
-            <div id="trackMessage" class="message"></div>
+
+            <div class="card">
+                <div class="section-title">Avoid / Weak Environment</div>
+                <div class="list">
+                    ${renderRows(data.avoid)}
+                </div>
+            </div>
         </div>
     `;
 }
 
-async function trackTrade() {
-    const shares = Number(document.getElementById("sharesInput").value);
-    const message = document.getElementById("trackMessage");
-
-    const tradeToLog = {
-        symbol: currentTrade.symbol,
-        entry: currentTrade.entry,
-        stop_loss: currentTrade.stop_loss,
-        target: currentTrade.target,
-        shares: shares,
-        status: "open"
-    };
-
-    await fetch("http://127.0.0.1:8000/log-trade", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(tradeToLog)
-    });
-
-    message.innerText = "Trade tracked.";
-    loadMyTrades(); // refresh
+function getRsClass(value) {
+    if (value >= 1) return "green";
+    if (value <= -1) return "red";
+    return "yellow";
 }
 
-async function loadMyTrades() {
-    const res = await fetch("http://127.0.0.1:8000/trade-log");
-    const trades = await res.json();
+function renderOpportunityCards(items) {
+    return items.slice(0, 4).map(item => {
+        return `
+            <div class="row">
+                <div class="row-top">
+                    <div class="row-symbol">${item.symbol}</div>
+                    <div class="row-score">${item.score}</div>
+                </div>
 
-    if (!trades.length) {
-        document.getElementById("myTrades").innerHTML =
-            "<div class='loading'>No trades yet.</div>";
-        return;
-    }
-
-    let rows = "";
-
-    for (let t of trades) {
-        const currentPrice = t.entry; // placeholder for now
-        const pl = (currentPrice - t.entry) * t.shares;
-
-        const plClass = pl >= 0 ? "profit" : "loss";
-
-        rows += `
-            <tr>
-                <td>${t.symbol}</td>
-                <td>${t.shares}</td>
-                <td>$${t.entry}</td>
-                <td>$${currentPrice}</td>
-                <td class="${plClass}">$${pl.toFixed(2)}</td>
-                <td>${t.status}</td>
-            </tr>
+                <div class="small">${item.market_state}</div>
+                <div class="small">${item.recommended_strategy}</div>
+                <div class="small">
+                    RS vs SPY:
+                    <span class="${getRsClass(item.relative_strength_vs_spy)}">
+                        ${item.relative_strength_vs_spy}%
+                    </span>
+                </div>
+                <div class="small">Entry: $${item.entry} | Target: $${item.target}</div>
+            </div>
         `;
-    }
-
-    document.getElementById("myTrades").innerHTML = `
-        <div class="label">My Trades</div>
-        <table>
-            <tr>
-                <th>Symbol</th>
-                <th>Shares</th>
-                <th>Entry</th>
-                <th>Current</th>
-                <th>P/L</th>
-                <th>Status</th>
-            </tr>
-            ${rows}
-        </table>
-    `;
+    }).join("");
 }
 
-loadTrade();
-loadMyTrades();
+function renderRows(items) {
+    return items.slice(0, 6).map(item => {
+        return `
+            <div class="row">
+                <div class="row-top">
+                    <div class="row-symbol">${item.symbol}</div>
+                    <div class="row-score">${item.score}</div>
+                </div>
+
+                <div class="small">${item.market_state}</div>
+                <div class="small">${item.recommended_strategy}</div>
+                <div class="small">
+                    RS vs SPY:
+                    <span class="${getRsClass(item.relative_strength_vs_spy)}">
+                        ${item.relative_strength_vs_spy}%
+                    </span>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+loadDashboard();
+
 </script>
 
 </body>
