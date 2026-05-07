@@ -1,4 +1,6 @@
 from app.options_engine import get_options_pressure
+from app.market_state_engine import classify_market_state
+from app.strategy_engine import recommend_options_strategy
 
 
 def generate_trade_signal(symbol: str, data: dict):
@@ -24,67 +26,54 @@ def generate_trade_signal(symbol: str, data: dict):
     stop_loss = round(price * 0.98, 2)
     target = round(price * 1.03, 2)
 
-    # -----------------------------
-    # Technical score
-    # -----------------------------
     technical_score = 0
 
     if conditions["price_range"]:
         technical_score += 15
-
     if conditions["above_20_ma"]:
         technical_score += 15
-
     if conditions["above_50_ma"]:
         technical_score += 15
-
     if conditions["bullish_trend_structure"]:
         technical_score += 15
-
     if conditions["liquidity"]:
         technical_score += 15
-
     if conditions["momentum"]:
         technical_score += 15
-
     if conditions["volume_spike"]:
         technical_score += 10
 
-    # Bonus points for stronger momentum
     if daily_change > 2:
         technical_score += 5
-
     if daily_change > 5:
         technical_score += 5
 
-    # -----------------------------
-    # Overextension penalty
-    # -----------------------------
     overextended = False
 
     if daily_change > 8:
         technical_score -= 10
         overextended = True
 
-    # -----------------------------
-    # Options pressure score
-    # -----------------------------
     options_data = get_options_pressure(symbol, price)
     options_score = options_data.get("options_pressure_score", 0)
 
-    # Final score
-    score = technical_score + options_score
+    market_state_data = classify_market_state(data)
+    market_state = market_state_data.get("market_state")
+    environment_score = market_state_data.get("environment_score")
+    state_reason = market_state_data.get("state_reason")
 
-    # Risk / reward
+    strategy_data = recommend_options_strategy(
+        market_state=market_state,
+        options_pressure=options_data.get("options_pressure"),
+        overextended=overextended,
+    )
+
+    score = technical_score + options_score + environment_score
+
     risk = entry - stop_loss
     reward = target - entry
+    risk_reward = round(reward / risk, 2) if risk > 0 else None
 
-    if risk > 0:
-        risk_reward = round(reward / risk, 2)
-    else:
-        risk_reward = None
-
-    # Signal classification
     core_long_conditions = (
         conditions["price_range"]
         and conditions["above_20_ma"]
@@ -94,10 +83,7 @@ def generate_trade_signal(symbol: str, data: dict):
         and conditions["liquidity"]
     )
 
-    strong_long_conditions = (
-        core_long_conditions
-        and conditions["volume_spike"]
-    )
+    strong_long_conditions = core_long_conditions and conditions["volume_spike"]
 
     watchlist_conditions = (
         conditions["price_range"]
@@ -130,9 +116,6 @@ def generate_trade_signal(symbol: str, data: dict):
         trade_suggestion = False
         reason = "Avoid: setup does not meet minimum trend and momentum conditions."
 
-    # -----------------------------
-    # Trade timeframe guidance
-    # -----------------------------
     if overextended:
         trade_timeframe = "same_day_only"
         expected_hold = "Hours to 1 trading day"
@@ -159,7 +142,7 @@ def generate_trade_signal(symbol: str, data: dict):
         exit_rule = "Avoid entering until conditions improve."
 
     if signal_type == "strong_long":
-        rank_reason = "Highest quality setup: trend, momentum, liquidity, volume, and options overlay evaluated."
+        rank_reason = "Highest quality setup: trend, momentum, liquidity, volume, options overlay, and environment evaluation pass."
     elif signal_type == "long":
         rank_reason = "Good setup: bullish trend and momentum pass, but volume spike is missing."
     elif signal_type == "watchlist":
@@ -175,22 +158,31 @@ def generate_trade_signal(symbol: str, data: dict):
         "confidence": confidence,
         "signal_type": signal_type,
         "trade_suggestion": trade_suggestion,
+
         "score": score,
         "technical_score": technical_score,
         "options_score": options_score,
+        "environment_score": environment_score,
+
+        "market_state": market_state,
+        "state_reason": state_reason,
+
+        "recommended_strategy": strategy_data.get("recommended_strategy"),
+        "strategy_family": strategy_data.get("strategy_family"),
+        "strategy_bias": strategy_data.get("strategy_bias"),
+        "strategy_reason": strategy_data.get("strategy_reason"),
+        "strategy_notes": strategy_data.get("strategy_notes"),
+
         "risk_reward": risk_reward,
 
-        # Trade timeframe guidance
         "trade_timeframe": trade_timeframe,
         "expected_hold": expected_hold,
         "exit_rule": exit_rule,
         "overextended": overextended,
 
-        # Trend data
         "avg_price_20": round(avg_price_20, 2),
         "avg_price_50": round(avg_price_50, 2),
 
-        # Options positioning data
         "options_pressure": options_data.get("options_pressure"),
         "options_pressure_score": options_data.get("options_pressure_score"),
         "options_summary": options_data.get("options_summary"),
@@ -203,10 +195,9 @@ def generate_trade_signal(symbol: str, data: dict):
         "largest_put_oi_strike": options_data.get("largest_put_oi_strike"),
         "options_expiration_used": options_data.get("expiration_used"),
 
-        # Trade plan context fields
         "entry_type": "market",
-        "strategy": "momentum continuation with options-positioning overlay",
-        "trade_plan_quality": "trend_momentum_options_pressure_model",
+        "strategy": strategy_data.get("recommended_strategy"),
+        "trade_plan_quality": "market_state_options_strategy_model",
 
         "rank_reason": rank_reason,
         "conditions": conditions,
