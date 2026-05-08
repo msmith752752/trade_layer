@@ -5,31 +5,60 @@
     <title>TradeLayer Dashboard</title>
 
     <style>
+        :root {
+            --bg: #0b0f1a;
+            --card: #151b2b;
+            --card-soft: #0f1523;
+            --border: #263044;
+            --text: #ffffff;
+            --muted: #9ca3af;
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #facc15;
+            --blue: #3b82f6;
+            --purple: #a78bfa;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            background: #0b0f1a;
-            color: white;
+            background: var(--bg);
+            color: var(--text);
             margin: 0;
             padding: 35px;
         }
 
         .container {
-            max-width: 1250px;
+            max-width: 1280px;
             margin: auto;
         }
 
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
             margin-bottom: 30px;
         }
 
         .header h1 {
             margin: 0;
             font-size: 34px;
+            letter-spacing: -0.5px;
         }
 
         .header p {
-            color: #9ca3af;
+            color: var(--muted);
             margin-top: 8px;
+        }
+
+        .status-pill {
+            background: #0f1523;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            white-space: nowrap;
         }
 
         .main-grid {
@@ -40,8 +69,8 @@
         }
 
         .card {
-            background: #151b2b;
-            border: 1px solid #263044;
+            background: var(--card);
+            border: 1px solid var(--border);
             border-radius: 18px;
             padding: 24px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.35);
@@ -50,10 +79,11 @@
         .symbol {
             font-size: 48px;
             font-weight: bold;
+            letter-spacing: -1px;
         }
 
         .subtitle {
-            color: #9ca3af;
+            color: var(--muted);
             margin-top: 4px;
         }
 
@@ -74,6 +104,24 @@
             font-weight: bold;
         }
 
+        .badge.green-bg {
+            background: rgba(34,197,94,0.14);
+            color: var(--green);
+            border: 1px solid rgba(34,197,94,0.25);
+        }
+
+        .badge.red-bg {
+            background: rgba(239,68,68,0.14);
+            color: var(--red);
+            border: 1px solid rgba(239,68,68,0.25);
+        }
+
+        .badge.yellow-bg {
+            background: rgba(250,204,21,0.12);
+            color: var(--yellow);
+            border: 1px solid rgba(250,204,21,0.22);
+        }
+
         .metric-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -81,17 +129,23 @@
             margin-bottom: 20px;
         }
 
+        .metric-grid.two {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
         .metric {
-            background: #0f1523;
-            border: 1px solid #263044;
+            background: var(--card-soft);
+            border: 1px solid var(--border);
             border-radius: 14px;
             padding: 16px;
         }
 
         .label {
-            color: #9ca3af;
+            color: var(--muted);
             font-size: 12px;
             margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .value {
@@ -99,18 +153,29 @@
             font-weight: bold;
         }
 
-        .green { color: #22c55e; }
-        .red { color: #ef4444; }
-        .yellow { color: #facc15; }
+        .green { color: var(--green); }
+        .red { color: var(--red); }
+        .yellow { color: var(--yellow); }
+        .blue { color: var(--blue); }
+        .purple { color: var(--purple); }
 
         .section-title {
             margin-bottom: 14px;
             font-size: 18px;
+            font-weight: bold;
+        }
+
+        .section-subtitle {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: -6px;
+            margin-bottom: 16px;
+            line-height: 1.45;
         }
 
         .why-box {
-            background: #0f1523;
-            border-left: 4px solid #3b82f6;
+            background: var(--card-soft);
+            border-left: 4px solid var(--blue);
             padding: 16px;
             border-radius: 10px;
             margin-top: 18px;
@@ -123,8 +188,8 @@
         }
 
         .row {
-            background: #0f1523;
-            border: 1px solid #263044;
+            background: var(--card-soft);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 14px;
         }
@@ -132,6 +197,7 @@
         .row-top {
             display: flex;
             justify-content: space-between;
+            gap: 12px;
             margin-bottom: 6px;
         }
 
@@ -145,7 +211,7 @@
         }
 
         .small {
-            color: #9ca3af;
+            color: var(--muted);
             font-size: 13px;
             line-height: 1.45;
         }
@@ -167,12 +233,31 @@
             margin-top: 22px;
         }
 
+        .positions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            margin-top: 22px;
+        }
+
+        .risk-field {
+            margin-bottom: 14px;
+        }
+
+        .risk-field label {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .risk-input {
             width: 100%;
             padding: 12px;
-            margin-bottom: 14px;
-            background: #0f1523;
-            border: 1px solid #263044;
+            background: var(--card-soft);
+            border: 1px solid var(--border);
             border-radius: 10px;
             color: white;
             font-size: 14px;
@@ -196,15 +281,72 @@
             opacity: 0.92;
         }
 
+        .empty-state {
+            background: var(--card-soft);
+            border: 1px dashed var(--border);
+            color: var(--muted);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .table th {
+            color: var(--muted);
+            font-weight: normal;
+            text-align: left;
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid rgba(38,48,68,0.65);
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
         @media(max-width: 1000px) {
             .main-grid,
             .bottom-grid,
+            .positions-grid,
             .opportunity-grid {
                 grid-template-columns: 1fr;
             }
 
-            .metric-grid {
+            .metric-grid,
+            .metric-grid.two {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header {
+                flex-direction: column;
+            }
+        }
+
+        @media(max-width: 650px) {
+            body {
+                padding: 18px;
+            }
+
+            .metric-grid,
+            .metric-grid.two {
+                grid-template-columns: 1fr;
+            }
+
+            .symbol {
+                font-size: 38px;
             }
         }
     </style>
@@ -214,292 +356,617 @@
 
 <div class="container">
     <div class="header">
-        <h1>TradeLayer</h1>
-        <p>Market structure + options strategy dashboard</p>
+        <div>
+            <h1>TradeLayer</h1>
+            <p>Market interpretation + trade management workstation</p>
+        </div>
+        <div id="refreshStatus" class="status-pill">Loading market scan...</div>
     </div>
 
     <div id="dashboard"></div>
 </div>
 
 <script>
+const API_BASE = "http://127.0.0.1:8000";
 
 async function loadDashboard() {
+    try {
+        const scanData = await fetchJson(`${API_BASE}/trade-scan`);
+        const tradeLogData = await fetchJson(`${API_BASE}/trade-log`, { optional: true });
+        const portfolioData = await fetchJson(`${API_BASE}/portfolio`, { optional: true });
+        const performanceData = await fetchJson(`${API_BASE}/performance`, { optional: true });
 
-    const response = await fetch("http://127.0.0.1:8000/trade-scan");
-    const data = await response.json();
+        const top = scanData.top_trade;
 
-    const top = data.top_trade;
+        if (!top) {
+            document.getElementById("dashboard").innerHTML =
+                "<div class='card'>No trades found.</div>";
+            updateRefreshStatus();
+            return;
+        }
 
-    if (!top) {
-        document.getElementById("dashboard").innerHTML =
-            "<div class='card'>No trades found.</div>";
-        return;
+        renderDashboard(scanData, tradeLogData, portfolioData, performanceData);
+        calculateRisk(top.entry, top.stop_loss);
+        updateRefreshStatus();
+
+    } catch (error) {
+        console.error(error);
+        document.getElementById("dashboard").innerHTML = `
+            <div class="card">
+                <div class="section-title">Unable to load TradeLayer</div>
+                <div class="small">
+                    Make sure the backend is running at ${API_BASE}.<br><br>
+                    Expected command:<br>
+                    <strong>python -m uvicorn app.main:app --reload</strong>
+                </div>
+            </div>
+        `;
+        document.getElementById("refreshStatus").textContent = "Backend not connected";
     }
+}
 
-    let rsClass = getRsClass(top.relative_strength_vs_spy);
+async function fetchJson(url, options = {}) {
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`${url} returned ${response.status}`);
+        }
+
+        return await response.json();
+
+    } catch (error) {
+        if (options.optional) {
+            console.warn(`Optional endpoint unavailable: ${url}`, error);
+            return null;
+        }
+        throw error;
+    }
+}
+
+function renderDashboard(scanData, tradeLogData, portfolioData, performanceData) {
+    const top = scanData.top_trade;
+    const rsClass = getRsClass(top.relative_strength_vs_spy);
+    const environmentClass = getEnvironmentClass(top.market_state);
 
     document.getElementById("dashboard").innerHTML = `
-
         <div class="main-grid">
-
             <div class="card">
-
-                <div class="symbol">${top.symbol}</div>
-                <div class="subtitle">${top.market_state}</div>
+                <div class="symbol">${safe(top.symbol)}</div>
+                <div class="subtitle">${safe(top.market_state)}</div>
 
                 <div class="badge-row">
-                    <div class="badge">${top.action_label}</div>
-                    <div class="badge">${top.recommended_strategy}</div>
-                    <div class="badge">${top.options_pressure}</div>
+                    <div class="badge ${environmentClass}">${safe(top.action_label)}</div>
+                    <div class="badge">${safe(top.recommended_strategy)}</div>
+                    <div class="badge">Options: ${safe(top.options_pressure)}</div>
                 </div>
 
                 <div class="metric-grid">
-
                     <div class="metric">
                         <div class="label">Entry</div>
-                        <div class="value">$${top.entry}</div>
+                        <div class="value">${formatCurrency(top.entry)}</div>
                     </div>
 
                     <div class="metric">
                         <div class="label">Target</div>
-                        <div class="value green">$${top.target}</div>
+                        <div class="value green">${formatCurrency(top.target)}</div>
                     </div>
 
                     <div class="metric">
                         <div class="label">Stop</div>
-                        <div class="value red">$${top.stop_loss}</div>
+                        <div class="value red">${formatCurrency(top.stop_loss)}</div>
                     </div>
 
                     <div class="metric">
-                        <div class="label">Score</div>
-                        <div class="value">${top.score}</div>
+                        <div class="label">Trade Score</div>
+                        <div class="value">${safe(top.score)}</div>
                     </div>
 
                     <div class="metric">
-                        <div class="label">RS vs SPY</div>
+                        <div class="label">Relative Strength vs SPY</div>
                         <div class="value ${rsClass}">
-                            ${top.relative_strength_vs_spy}%
+                            ${formatPercent(top.relative_strength_vs_spy)}
                         </div>
                     </div>
 
                     <div class="metric">
                         <div class="label">Expected Hold</div>
-                        <div class="value">${top.expected_hold}</div>
+                        <div class="value">${safe(top.expected_hold)}</div>
                     </div>
-
                 </div>
 
                 <div class="why-box">
                     <div class="section-title">Why This Strategy</div>
-
-                    ${(top.strategy_reason || [])
-                        .map(r => `<div class="small">• ${r}</div>`)
-                        .join("")}
+                    ${renderReasonList(top.strategy_reason)}
                 </div>
-
             </div>
 
             <div class="card">
-
                 <div class="section-title">Risk Management</div>
+                <div class="section-subtitle">
+                    Calculate position size using account value, max risk per trade, entry, and stop.
+                </div>
 
-                <input
-                    id="accountValue"
-                    class="risk-input"
-                    type="number"
-                    value="25000"
-                    placeholder="Account Value"
-                >
+                <div class="risk-field">
+                    <label for="accountValue">Account Value ($)</label>
+                    <input
+                        id="accountValue"
+                        class="risk-input"
+                        type="number"
+                        value="25000"
+                        placeholder="Example: 25000"
+                    >
+                </div>
 
-                <input
-                    id="riskPercent"
-                    class="risk-input"
-                    type="number"
-                    value="2"
-                    placeholder="Risk %"
-                >
+                <div class="risk-field">
+                    <label for="riskPercent">Max Risk Per Trade (%)</label>
+                    <input
+                        id="riskPercent"
+                        class="risk-input"
+                        type="number"
+                        value="2"
+                        placeholder="Example: 2"
+                    >
+                </div>
 
                 <button
                     class="risk-button"
-                    onclick="calculateRisk(${top.entry}, ${top.stop_loss})"
+                    onclick="calculateRisk(${Number(top.entry)}, ${Number(top.stop_loss)})"
                 >
                     Calculate Position Size
                 </button>
 
                 <div id="riskResults"></div>
-
             </div>
-
         </div>
 
         <div class="card top-opportunities">
             <div class="section-title">Top Opportunities</div>
+            <div class="section-subtitle">
+                Highest-ranked setups after trend, momentum, liquidity, options pressure, regime, and RS vs SPY filters.
+            </div>
 
             <div class="opportunity-grid">
-                ${renderOpportunityCards(data.trade_opportunities)}
+                ${renderOpportunityCards(scanData.trade_opportunities || [])}
+            </div>
+        </div>
+
+        <div class="positions-grid">
+            <div class="card">
+                <div class="section-title">Open Positions</div>
+                <div class="section-subtitle">
+                    Current tracked positions with unrealized P/L where backend data is available.
+                </div>
+                ${renderOpenPositions(tradeLogData, portfolioData)}
+            </div>
+
+            <div class="card">
+                <div class="section-title">Closed Trades</div>
+                <div class="section-subtitle">
+                    Completed trades and realized P/L summary.
+                </div>
+                ${renderClosedTrades(tradeLogData, performanceData)}
             </div>
         </div>
 
         <div class="bottom-grid">
-
             <div class="card">
                 <div class="section-title">Watchlist</div>
+                <div class="section-subtitle">
+                    Names with potential, but not yet strong enough for top-trade status.
+                </div>
 
                 <div class="list">
-                    ${renderRows(data.watchlist)}
+                    ${renderRows(scanData.watchlist || [])}
                 </div>
             </div>
 
             <div class="card">
                 <div class="section-title">Avoid / Weak Environment</div>
+                <div class="section-subtitle">
+                    Strong names can still be poor trades if the environment is unstable or overextended.
+                </div>
 
                 <div class="list">
-                    ${renderRows(data.avoid)}
+                    ${renderRows(scanData.avoid || [])}
                 </div>
             </div>
-
         </div>
     `;
-
-    calculateRisk(top.entry, top.stop_loss);
 }
 
 async function calculateRisk(entry, stop) {
+    try {
+        const accountValue = document.getElementById("accountValue").value;
+        const riskPercent = document.getElementById("riskPercent").value;
 
-    const accountValue =
-        document.getElementById("accountValue").value;
+        const data = await fetchJson(
+            `${API_BASE}/risk-plan?account_value=${accountValue}&risk_percent=${riskPercent}&entry_price=${entry}&stop_price=${stop}`
+        );
 
-    const riskPercent =
-        document.getElementById("riskPercent").value;
+        document.getElementById("riskResults").innerHTML = `
+            <div class="metric-grid two">
+                <div class="metric">
+                    <div class="label">Allowed Risk</div>
+                    <div class="value red">
+                        ${formatCurrency(data.allowed_risk_dollars)}
+                    </div>
+                </div>
 
-    const response = await fetch(
-        `http://127.0.0.1:8000/risk-plan?account_value=${accountValue}&risk_percent=${riskPercent}&entry_price=${entry}&stop_price=${stop}`
-    );
+                <div class="metric">
+                    <div class="label">Suggested Shares</div>
+                    <div class="value">
+                        ${safe(data.suggested_shares)}
+                    </div>
+                </div>
 
-    const data = await response.json();
+                <div class="metric">
+                    <div class="label">Estimated Max Loss</div>
+                    <div class="value red">
+                        ${formatCurrency(data.estimated_max_loss)}
+                    </div>
+                </div>
 
-    document.getElementById("riskResults").innerHTML = `
+                <div class="metric">
+                    <div class="label">Risk / Share</div>
+                    <div class="value">
+                        ${formatCurrency(data.risk_per_share)}
+                    </div>
+                </div>
 
-        <div class="metric-grid">
+                <div class="metric">
+                    <div class="label">Position Value</div>
+                    <div class="value">
+                        ${formatCurrency(data.position_value)}
+                    </div>
+                </div>
 
-            <div class="metric">
-                <div class="label">Allowed Risk</div>
-                <div class="value red">
-                    $${data.allowed_risk_dollars}
+                <div class="metric">
+                    <div class="label">Account Exposure</div>
+                    <div class="value yellow">
+                        ${formatPercent(data.position_exposure_percent)}
+                    </div>
                 </div>
             </div>
-
-            <div class="metric">
-                <div class="label">Suggested Shares</div>
-                <div class="value">
-                    ${data.suggested_shares}
-                </div>
+        `;
+    } catch (error) {
+        console.error(error);
+        document.getElementById("riskResults").innerHTML = `
+            <div class="empty-state">
+                Risk calculator unavailable. Confirm the /risk-plan endpoint is running.
             </div>
+        `;
+    }
+}
 
-            <div class="metric">
-                <div class="label">Max Loss</div>
-                <div class="value red">
-                    $${data.estimated_max_loss}
-                </div>
+function renderOpenPositions(tradeLogData, portfolioData) {
+    const portfolioPositions = normalizeArray(portfolioData?.open_positions || portfolioData?.positions || portfolioData);
+    const loggedTrades = normalizeTradeLog(tradeLogData);
+
+    const openItems = portfolioPositions.length > 0
+        ? portfolioPositions
+        : loggedTrades.filter(t => isOpenTrade(t));
+
+    if (openItems.length === 0) {
+        return `
+            <div class="empty-state">
+                No open positions found yet. Once /trade-log or /portfolio returns open positions, they will appear here.
             </div>
+        `;
+    }
 
-            <div class="metric">
-                <div class="label">Risk / Share</div>
-                <div class="value">
-                    $${data.risk_per_share}
-                </div>
-            </div>
-
-            <div class="metric">
-                <div class="label">Position Value</div>
-                <div class="value">
-                    $${data.position_value}
-                </div>
-            </div>
-
-            <div class="metric">
-                <div class="label">Exposure %</div>
-                <div class="value yellow">
-                    ${data.position_exposure_percent}%
-                </div>
-            </div>
-
-        </div>
+    return `
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Symbol</th>
+                    <th>Qty</th>
+                    <th>Cost</th>
+                    <th>P/L</th>
+                    <th>Guidance</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${openItems.map(item => {
+                    const pnl = getFirstValue(item, ["unrealized_pl", "unrealized_p_l", "p_l", "pl", "unrealized"]);
+                    return `
+                        <tr>
+                            <td>${safe(getFirstValue(item, ["account", "account_type"], "—"))}</td>
+                            <td><strong>${safe(item.symbol)}</strong></td>
+                            <td>${safe(getFirstValue(item, ["quantity", "qty", "shares"], "—"))}</td>
+                            <td>${formatCurrency(getFirstValue(item, ["cost_basis", "entry", "price", "buy_price"]))}</td>
+                            <td class="${getPnlClass(pnl)}">${formatCurrencyOrDash(pnl)}</td>
+                            <td>${getPositionGuidance(item, pnl)}</td>
+                        </tr>
+                    `;
+                }).join("")}
+            </tbody>
+        </table>
     `;
 }
 
-function getRsClass(value) {
-    if (value >= 1) return "green";
-    if (value <= -1) return "red";
-    return "yellow";
+function renderClosedTrades(tradeLogData, performanceData) {
+    const loggedTrades = normalizeTradeLog(tradeLogData);
+    const closedItems = loggedTrades.filter(t => isClosedTrade(t));
+
+    let totalRealized = getFirstValue(
+        performanceData || {},
+        ["total_realized_pl", "realized_pl", "total_pl", "total_p_l"],
+        null
+    );
+
+    const calculatedRealized = closedItems.reduce((sum, trade) => {
+        const pnl = Number(
+            getFirstValue(trade, ["realized_pl", "realized_p_l", "p_l", "pl"], 0)
+        );
+
+        if (Number.isNaN(pnl)) {
+            return sum;
+        }
+
+        return sum + pnl;
+    }, 0);
+
+    if (totalRealized === null || Number(totalRealized) === 0) {
+        totalRealized = calculatedRealized;
+    }
+
+    if (closedItems.length === 0 && totalRealized === null) {
+        return `
+            <div class="empty-state">
+                No closed trades found yet. Completed trades will show realized P/L here.
+            </div>
+        `;
+    }
+
+    return `
+        <div class="metric-grid two">
+            <div class="metric">
+                <div class="label">Realized P/L</div>
+                <div class="value ${getPnlClass(totalRealized)}">${formatCurrencyOrDash(totalRealized)}</div>
+            </div>
+
+            <div class="metric">
+                <div class="label">Closed Trades</div>
+                <div class="value">${closedItems.length}</div>
+            </div>
+        </div>
+
+        ${closedItems.length > 0 ? `
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Symbol</th>
+                        <th>Exit</th>
+                        <th>Realized P/L</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${closedItems.map(item => {
+                        const pnl = getFirstValue(item, ["realized_pl", "realized_p_l", "p_l", "pl"]);
+                        return `
+                            <tr>
+                                <td>${safe(getFirstValue(item, ["account", "account_type"], "—"))}</td>
+                                <td><strong>${safe(item.symbol)}</strong></td>
+                                <td>${formatCurrency(getFirstValue(item, ["sale_price", "sell_price", "exit", "price"]))}</td>
+                                <td class="${getPnlClass(pnl)}">${formatCurrencyOrDash(pnl)}</td>
+                            </tr>
+                        `;
+                    }).join("")}
+                </tbody>
+            </table>
+        ` : ""}
+    `;
 }
 
 function renderOpportunityCards(items) {
+    if (!items || items.length === 0) {
+        return `<div class="empty-state">No top opportunities returned.</div>`;
+    }
 
     return items.slice(0, 4).map(item => {
-
         return `
             <div class="row">
-
                 <div class="row-top">
-                    <div class="row-symbol">${item.symbol}</div>
-                    <div class="row-score">${item.score}</div>
+                    <div class="row-symbol">${safe(item.symbol)}</div>
+                    <div class="row-score">${safe(item.score)}</div>
                 </div>
 
-                <div class="small">${item.market_state}</div>
-                <div class="small">${item.recommended_strategy}</div>
+                <div class="small">${safe(item.market_state)}</div>
+                <div class="small">${safe(item.recommended_strategy)}</div>
 
                 <div class="small">
                     RS vs SPY:
-
                     <span class="${getRsClass(item.relative_strength_vs_spy)}">
-                        ${item.relative_strength_vs_spy}%
+                        ${formatPercent(item.relative_strength_vs_spy)}
                     </span>
                 </div>
 
                 <div class="small">
-                    Entry: $${item.entry}
+                    Entry: ${formatCurrency(item.entry)}
                     |
-                    Target: $${item.target}
+                    Target: ${formatCurrency(item.target)}
                 </div>
-
             </div>
         `;
-
     }).join("");
 }
 
 function renderRows(items) {
+    if (!items || items.length === 0) {
+        return `<div class="empty-state">No names returned for this section.</div>`;
+    }
 
     return items.slice(0, 6).map(item => {
-
         return `
             <div class="row">
-
                 <div class="row-top">
-                    <div class="row-symbol">${item.symbol}</div>
-                    <div class="row-score">${item.score}</div>
+                    <div class="row-symbol">${safe(item.symbol)}</div>
+                    <div class="row-score">${safe(item.score)}</div>
                 </div>
 
-                <div class="small">${item.market_state}</div>
-                <div class="small">${item.recommended_strategy}</div>
+                <div class="small">${safe(item.market_state)}</div>
+                <div class="small">${safe(item.recommended_strategy)}</div>
 
                 <div class="small">
                     RS vs SPY:
-
                     <span class="${getRsClass(item.relative_strength_vs_spy)}">
-                        ${item.relative_strength_vs_spy}%
+                        ${formatPercent(item.relative_strength_vs_spy)}
                     </span>
                 </div>
-
             </div>
         `;
-
     }).join("");
 }
 
-loadDashboard();
+function renderReasonList(reasons) {
+    if (!reasons || reasons.length === 0) {
+        return `<div class="small">No strategy explanation returned yet.</div>`;
+    }
 
+    return reasons
+        .map(r => `<div class="small">• ${safe(r)}</div>`)
+        .join("");
+}
+
+function normalizeTradeLog(data) {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.trades)) return data.trades;
+    if (Array.isArray(data.trade_log)) return data.trade_log;
+
+    if (Array.isArray(data.open_trades) || Array.isArray(data.closed_trades)) {
+        return [
+            ...(data.open_trades || []),
+            ...(data.closed_trades || [])
+        ];
+    }
+
+    return [];
+}
+
+function normalizeArray(value) {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    return [];
+}
+
+function isOpenTrade(trade) {
+    const status = String(getFirstValue(trade, ["status", "trade_status"], "")).toLowerCase();
+    const action = String(getFirstValue(trade, ["action"], "")).toLowerCase();
+
+    if (status.includes("open")) return true;
+    if (status.includes("closed")) return false;
+    if (action.includes("buy") && !action.includes("sell")) return true;
+
+    return false;
+}
+
+function isClosedTrade(trade) {
+    const status = String(getFirstValue(trade, ["status", "trade_status"], "")).toLowerCase();
+    const action = String(getFirstValue(trade, ["action"], "")).toLowerCase();
+    const realized = getFirstValue(trade, ["realized_pl", "realized_p_l", "p_l", "pl"], null);
+
+    if (status.includes("closed")) return true;
+    if (action.includes("sell")) return true;
+    if (realized !== null && realized !== undefined) return true;
+
+    return false;
+}
+
+function getPositionGuidance(item, pnl) {
+    const pnlNumber = Number(pnl);
+    const guidance = getFirstValue(item, ["guidance", "position_guidance", "recommendation"]);
+
+    if (guidance) return safe(guidance);
+
+    if (!Number.isNaN(pnlNumber)) {
+        if (pnlNumber > 0) return "hold_position / monitor target";
+        if (pnlNumber < 0) return "review stop / avoid adding";
+    }
+
+    return "hold_position / monitor setup";
+}
+
+function getFirstValue(object, keys, fallback = null) {
+    if (!object) return fallback;
+
+    for (const key of keys) {
+        if (object[key] !== undefined && object[key] !== null && object[key] !== "") {
+            return object[key];
+        }
+    }
+
+    return fallback;
+}
+
+function getRsClass(value) {
+    const number = Number(value);
+    if (number >= 1) return "green";
+    if (number <= -1) return "red";
+    return "yellow";
+}
+
+function getPnlClass(value) {
+    const number = Number(value);
+    if (Number.isNaN(number)) return "";
+    if (number > 0) return "green";
+    if (number < 0) return "red";
+    return "yellow";
+}
+
+function getEnvironmentClass(value) {
+    const text = String(value || "").toLowerCase();
+
+    if (text.includes("unstable") || text.includes("avoid") || text.includes("high_risk")) {
+        return "red-bg";
+    }
+
+    if (text.includes("watch") || text.includes("neutral") || text.includes("mixed")) {
+        return "yellow-bg";
+    }
+
+    return "green-bg";
+}
+
+function formatCurrency(value) {
+    const number = Number(value);
+    if (Number.isNaN(number)) return "$—";
+    return `$${number.toFixed(2)}`;
+}
+
+function formatCurrencyOrDash(value) {
+    if (value === null || value === undefined || value === "") return "$—";
+    return formatCurrency(value);
+}
+
+function formatPercent(value) {
+    const number = Number(value);
+    if (Number.isNaN(number)) return "—";
+    return `${number.toFixed(2)}%`;
+}
+
+function safe(value) {
+    if (value === null || value === undefined || value === "") return "—";
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function updateRefreshStatus() {
+    const now = new Date();
+
+    document.getElementById("refreshStatus").textContent =
+        `Last refreshed ${now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+}
+
+loadDashboard();
 </script>
 
 </body>
