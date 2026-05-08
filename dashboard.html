@@ -28,7 +28,7 @@
         }
 
         .container {
-            max-width: 1280px;
+            max-width: 1380px;
             margin: auto;
         }
 
@@ -133,6 +133,10 @@
             grid-template-columns: repeat(2, 1fr);
         }
 
+        .metric-grid.three {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
         .metric {
             background: var(--card-soft);
             border: 1px solid var(--border);
@@ -235,7 +239,7 @@
 
         .positions-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.2fr 0.8fr;
             gap: 22px;
             margin-top: 22px;
         }
@@ -291,10 +295,19 @@
             line-height: 1.5;
         }
 
+        .table-wrap {
+            overflow-x: auto;
+        }
+
         .table {
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
+            min-width: 820px;
+        }
+
+        .table.compact {
+            min-width: 560px;
         }
 
         .table th {
@@ -317,7 +330,7 @@
             border-bottom: none;
         }
 
-        @media(max-width: 1000px) {
+        @media(max-width: 1100px) {
             .main-grid,
             .bottom-grid,
             .positions-grid,
@@ -326,7 +339,8 @@
             }
 
             .metric-grid,
-            .metric-grid.two {
+            .metric-grid.two,
+            .metric-grid.three {
                 grid-template-columns: repeat(2, 1fr);
             }
 
@@ -341,7 +355,8 @@
             }
 
             .metric-grid,
-            .metric-grid.two {
+            .metric-grid.two,
+            .metric-grid.three {
                 grid-template-columns: 1fr;
             }
 
@@ -535,7 +550,7 @@ function renderDashboard(scanData, tradeLogData, portfolioData, performanceData)
             <div class="card">
                 <div class="section-title">Open Positions</div>
                 <div class="section-subtitle">
-                    Current tracked positions with unrealized P/L where backend data is available.
+                    Live unrealized P/L calculated from current market price, share count, and cost basis.
                 </div>
                 ${renderOpenPositions(tradeLogData, portfolioData)}
             </div>
@@ -640,7 +655,7 @@ async function calculateRisk(entry, stop) {
 }
 
 function renderOpenPositions(tradeLogData, portfolioData) {
-    const portfolioPositions = normalizeArray(portfolioData?.open_positions || portfolioData?.positions || portfolioData);
+    const portfolioPositions = normalizeArray(portfolioData?.open_positions || portfolioData?.positions);
     const loggedTrades = normalizeTradeLog(tradeLogData);
 
     const openItems = portfolioPositions.length > 0
@@ -655,34 +670,70 @@ function renderOpenPositions(tradeLogData, portfolioData) {
         `;
     }
 
+    const openPL = portfolioData?.open_pl;
+    const openPLPercent = portfolioData?.open_pl_percent;
+    const marketValue = portfolioData?.market_value;
+    const openBasis = portfolioData?.open_basis;
+
     return `
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Account</th>
-                    <th>Symbol</th>
-                    <th>Qty</th>
-                    <th>Cost</th>
-                    <th>P/L</th>
-                    <th>Guidance</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${openItems.map(item => {
-                    const pnl = getFirstValue(item, ["unrealized_pl", "unrealized_p_l", "p_l", "pl", "unrealized"]);
-                    return `
-                        <tr>
-                            <td>${safe(getFirstValue(item, ["account", "account_type"], "—"))}</td>
-                            <td><strong>${safe(item.symbol)}</strong></td>
-                            <td>${safe(getFirstValue(item, ["quantity", "qty", "shares"], "—"))}</td>
-                            <td>${formatCurrency(getFirstValue(item, ["cost_basis", "entry", "price", "buy_price"]))}</td>
-                            <td class="${getPnlClass(pnl)}">${formatCurrencyOrDash(pnl)}</td>
-                            <td>${getPositionGuidance(item, pnl)}</td>
-                        </tr>
-                    `;
-                }).join("")}
-            </tbody>
-        </table>
+        <div class="metric-grid three">
+            <div class="metric">
+                <div class="label">Open P/L</div>
+                <div class="value ${getPnlClass(openPL)}">${formatCurrencyOrDash(openPL)}</div>
+            </div>
+
+            <div class="metric">
+                <div class="label">Open P/L %</div>
+                <div class="value ${getPnlClass(openPLPercent)}">${formatPercent(openPLPercent)}</div>
+            </div>
+
+            <div class="metric">
+                <div class="label">Market Value</div>
+                <div class="value">${formatCurrencyOrDash(marketValue)}</div>
+            </div>
+        </div>
+
+        <div class="small" style="margin-bottom: 12px;">
+            Cost basis tracked: ${formatCurrencyOrDash(openBasis)}
+        </div>
+
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Symbol</th>
+                        <th>Qty</th>
+                        <th>Cost</th>
+                        <th>Current</th>
+                        <th>Value</th>
+                        <th>P/L</th>
+                        <th>P/L %</th>
+                        <th>Guidance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${openItems.map(item => {
+                        const pnl = getFirstValue(item, ["unrealized_pl", "unrealized_p_l", "p_l", "pl", "unrealized"]);
+                        const pnlPercent = getFirstValue(item, ["unrealized_pl_percent", "p_l_percent", "pl_percent"]);
+
+                        return `
+                            <tr>
+                                <td>${safe(getFirstValue(item, ["account", "account_type"], "—"))}</td>
+                                <td><strong>${safe(item.symbol)}</strong></td>
+                                <td>${formatShares(getFirstValue(item, ["shares", "quantity", "qty"], "—"))}</td>
+                                <td>${formatCurrency(getFirstValue(item, ["cost_basis", "entry", "price", "buy_price"]))}</td>
+                                <td>${formatCurrencyOrDash(getFirstValue(item, ["current_price", "current", "last_price"]))}</td>
+                                <td>${formatCurrencyOrDash(getFirstValue(item, ["market_value", "position_value", "value"]))}</td>
+                                <td class="${getPnlClass(pnl)}">${formatCurrencyOrDash(pnl)}</td>
+                                <td class="${getPnlClass(pnlPercent)}">${formatPercent(pnlPercent)}</td>
+                                <td>${safe(getPositionGuidance(item, pnl))}</td>
+                            </tr>
+                        `;
+                    }).join("")}
+                </tbody>
+            </table>
+        </div>
     `;
 }
 
@@ -734,29 +785,31 @@ function renderClosedTrades(tradeLogData, performanceData) {
         </div>
 
         ${closedItems.length > 0 ? `
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Account</th>
-                        <th>Symbol</th>
-                        <th>Exit</th>
-                        <th>Realized P/L</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${closedItems.map(item => {
-                        const pnl = getFirstValue(item, ["realized_pl", "realized_p_l", "p_l", "pl"]);
-                        return `
-                            <tr>
-                                <td>${safe(getFirstValue(item, ["account", "account_type"], "—"))}</td>
-                                <td><strong>${safe(item.symbol)}</strong></td>
-                                <td>${formatCurrency(getFirstValue(item, ["sale_price", "sell_price", "exit", "price"]))}</td>
-                                <td class="${getPnlClass(pnl)}">${formatCurrencyOrDash(pnl)}</td>
-                            </tr>
-                        `;
-                    }).join("")}
-                </tbody>
-            </table>
+            <div class="table-wrap">
+                <table class="table compact">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Symbol</th>
+                            <th>Exit</th>
+                            <th>Realized P/L</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${closedItems.map(item => {
+                            const pnl = getFirstValue(item, ["realized_pl", "realized_p_l", "p_l", "pl"]);
+                            return `
+                                <tr>
+                                    <td>${safe(getFirstValue(item, ["account", "account_type"], "—"))}</td>
+                                    <td><strong>${safe(item.symbol)}</strong></td>
+                                    <td>${formatCurrency(getFirstValue(item, ["sale_price", "sell_price", "exit_price", "exit", "price"]))}</td>
+                                    <td class="${getPnlClass(pnl)}">${formatCurrencyOrDash(pnl)}</td>
+                                </tr>
+                            `;
+                        }).join("")}
+                    </tbody>
+                </table>
+            </div>
         ` : ""}
     `;
 }
@@ -877,10 +930,11 @@ function isClosedTrade(trade) {
 }
 
 function getPositionGuidance(item, pnl) {
-    const pnlNumber = Number(pnl);
     const guidance = getFirstValue(item, ["guidance", "position_guidance", "recommendation"]);
 
-    if (guidance) return safe(guidance);
+    if (guidance) return guidance;
+
+    const pnlNumber = Number(pnl);
 
     if (!Number.isNaN(pnlNumber)) {
         if (pnlNumber > 0) return "hold_position / monitor target";
@@ -943,9 +997,17 @@ function formatCurrencyOrDash(value) {
 }
 
 function formatPercent(value) {
+    if (value === null || value === undefined || value === "") return "—";
+
     const number = Number(value);
     if (Number.isNaN(number)) return "—";
     return `${number.toFixed(2)}%`;
+}
+
+function formatShares(value) {
+    const number = Number(value);
+    if (Number.isNaN(number)) return safe(value);
+    return Number.isInteger(number) ? String(number) : number.toFixed(4);
 }
 
 function safe(value) {

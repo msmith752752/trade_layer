@@ -2,10 +2,12 @@ print("LOADING THIS FILE:", __file__)
 
 import json
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.market_data import get_market_data
+
+from app.market_data import get_market_data, get_current_price
 from app.trade_engine import generate_trade_signal
 
 from app.risk_engine import (
@@ -22,6 +24,136 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+TRADE_LOG_PATH = Path("trade_log.json")
+
+
+def read_trade_log() -> list:
+    if not TRADE_LOG_PATH.exists():
+        return []
+
+    with open(TRADE_LOG_PATH, "r") as f:
+        return json.load(f)
+
+
+def write_trade_log(trades: list) -> None:
+    with open(TRADE_LOG_PATH, "w") as f:
+        json.dump(trades, f, indent=2)
+
+
+def get_trade_cost_basis(trade: dict) -> float:
+    """
+    Returns per-share cost basis.
+    Supports price, entry, cost_basis, or total_basis / shares.
+    """
+    shares = float(trade.get("shares", 0) or 0)
+
+    if trade.get("cost_basis") is not None:
+        return float(trade.get("cost_basis"))
+
+    if trade.get("entry") is not None:
+        return float(trade.get("entry"))
+
+    if trade.get("price") is not None:
+        return float(trade.get("price"))
+
+    if trade.get("total_basis") is not None and shares > 0:
+        return float(trade.get("total_basis")) / shares
+
+    return 0.0
+
+
+def get_trade_total_basis(trade: dict) -> float:
+    shares = float(trade.get("shares", 0) or 0)
+
+    if trade.get("total_basis") is not None:
+        return float(trade.get("total_basis"))
+
+    return get_trade_cost_basis(trade) * shares
+
+
+def get_trade_exit_price(trade: dict) -> float:
+    if trade.get("exit_price") is not None:
+        return float(trade.get("exit_price"))
+
+    if trade.get("sale_price") is not None:
+        return float(trade.get("sale_price"))
+
+    if trade.get("sell_price") is not None:
+        return float(trade.get("sell_price"))
+
+    if trade.get("price") is not None:
+        return float(trade.get("price"))
+
+    return 0.0
+
+
+def get_position_guidance(unrealized_pl: float | None, unrealized_pl_percent: float | None) -> str:
+    if unrealized_pl is None:
+        return "hold_position / price unavailable"
+
+    if unrealized_pl_percent is not None:
+        if unrealized_pl_percent >= 5:
+            return "monitor target / consider trimming"
+        if unrealized_pl_percent <= -5:
+            return "review stop / avoid adding"
+
+    if unrealized_pl > 0:
+        return "hold_position / monitor target"
+
+    if unrealized_pl < 0:
+        return "review stop / avoid adding"
+
+    return "hold_position / monitor setup"
+
+
+def enrich_open_position(trade: dict) -> dict:
+    symbol = str(trade.get("symbol", "")).upper().strip()
+    shares = float(trade.get("shares", 0) or 0)
+    cost_basis = get_trade_cost_basis(trade)
+    total_basis = get_trade_total_basis(trade)
+
+    current_price = get_current_price(symbol)
+
+    if current_price is None or shares <= 0:
+        market_value = None
+        unrealized_pl = None
+        unrealized_pl_percent = None
+    else:
+        market_value = current_price * shares
+        unrealized_pl = market_value - total_basis
+        unrealized_pl_percent = (unrealized_pl / total_basis) * 100 if total_basis else None
+
+    return {
+        **trade,
+        "symbol": symbol,
+        "shares": shares,
+        "cost_basis": round(cost_basis, 4),
+        "total_basis": round(total_basis, 2),
+        "current_price": round(current_price, 2) if current_price is not None else None,
+        "market_value": round(market_value, 2) if market_value is not None else None,
+        "unrealized_pl": round(unrealized_pl, 2) if unrealized_pl is not None else None,
+        "unrealized_pl_percent": round(unrealized_pl_percent, 2) if unrealized_pl_percent is not None else None,
+        "guidance": get_position_guidance(unrealized_pl, unrealized_pl_percent),
+    }
+
+
+def enrich_closed_trade(trade: dict) -> dict:
+    shares = float(trade.get("shares", 0) or 0)
+    cost_basis = get_trade_cost_basis(trade)
+    exit_price = get_trade_exit_price(trade)
+
+    realized_pl = trade.get("realized_pl")
+
+    if realized_pl is None and shares > 0:
+        realized_pl = (exit_price - cost_basis) * shares
+
+    return {
+        **trade,
+        "cost_basis": round(cost_basis, 4),
+        "exit_price": round(exit_price, 2),
+        "realized_pl": round(float(realized_pl or 0), 2),
+    }
 
 
 def enrich_signal(signal: dict) -> dict:
@@ -170,13 +302,10 @@ def log_trade(trade: dict):
 
     trade["timestamp"] = datetime.now().isoformat()
 
-    with open("trade_log.json", "r") as f:
-        trades = json.load(f)
-
+    trades = read_trade_log()
     trades.append(trade)
 
-    with open("trade_log.json", "w") as f:
-        json.dump(trades, f, indent=2)
+    write_trade_log(trades)
 
     return {"status": "trade logged", "trade": trade}
 
@@ -184,9 +313,7 @@ def log_trade(trade: dict):
 @app.get("/trade-log")
 def get_trade_log():
 
-    with open("trade_log.json", "r") as f:
-        trades = json.load(f)
-
+    trades = read_trade_log()
     updated = False
 
     for t in trades:
@@ -197,11 +324,10 @@ def get_trade_log():
         if not t.get("stop_loss"):
             continue
 
-        data = get_market_data(t["symbol"])
-        if not data or "error" in data:
-            continue
+        current_price = get_current_price(t["symbol"])
 
-        current_price = data["price"]
+        if current_price is None:
+            continue
 
         if current_price <= t["stop_loss"]:
             t["status"] = "closed"
@@ -209,8 +335,7 @@ def get_trade_log():
             updated = True
 
     if updated:
-        with open("trade_log.json", "w") as f:
-            json.dump(trades, f, indent=2)
+        write_trade_log(trades)
 
     return trades
 
@@ -218,8 +343,7 @@ def get_trade_log():
 @app.get("/performance")
 def get_performance():
 
-    with open("trade_log.json", "r") as f:
-        trades = json.load(f)
+    trades = read_trade_log()
 
     total_trades = len(trades)
     open_trades = 0
@@ -237,18 +361,15 @@ def get_performance():
         if t.get("status") == "closed":
             closed_trades += 1
 
-            entry = t.get("entry")
-            exit_price = t.get("exit_price")
-            shares = t.get("shares", 0)
+            closed_trade = enrich_closed_trade(t)
+            pl = closed_trade.get("realized_pl", 0)
 
-            if entry and exit_price:
-                pl = (exit_price - entry) * shares
-                total_pl += pl
+            total_pl += pl
 
-                if pl > 0:
-                    wins += 1
-                else:
-                    losses += 1
+            if pl > 0:
+                wins += 1
+            elif pl < 0:
+                losses += 1
 
     avg_pl = total_pl / closed_trades if closed_trades > 0 else 0
 
@@ -259,6 +380,7 @@ def get_performance():
         "wins": wins,
         "losses": losses,
         "total_pl": round(total_pl, 2),
+        "total_realized_pl": round(total_pl, 2),
         "avg_pl": round(avg_pl, 2)
     }
 
@@ -266,28 +388,43 @@ def get_performance():
 @app.get("/portfolio")
 def get_portfolio():
 
-    with open("trade_log.json", "r") as f:
-        trades = json.load(f)
+    trades = read_trade_log()
 
-    open_pl = 0
+    open_positions = []
+    closed_positions = []
+
+    total_open_basis = 0
+    total_market_value = 0
+    total_unrealized_pl = 0
 
     for t in trades:
 
-        if t.get("status") != "open":
-            continue
+        if t.get("status") == "open":
+            enriched = enrich_open_position(t)
+            open_positions.append(enriched)
 
-        data = get_market_data(t["symbol"])
-        if not data or "error" in data:
-            continue
+            total_open_basis += enriched.get("total_basis") or 0
+            total_market_value += enriched.get("market_value") or 0
+            total_unrealized_pl += enriched.get("unrealized_pl") or 0
 
-        current = data["price"]
-        entry = t["entry"]
-        shares = t.get("shares", 0)
+        elif t.get("status") == "closed":
+            closed_positions.append(enrich_closed_trade(t))
 
-        open_pl += (current - entry) * shares
+    total_unrealized_pl_percent = (
+        (total_unrealized_pl / total_open_basis) * 100
+        if total_open_basis
+        else 0
+    )
 
     return {
-        "open_pl": round(open_pl, 2)
+        "open_positions": open_positions,
+        "closed_positions": closed_positions,
+        "open_count": len(open_positions),
+        "closed_count": len(closed_positions),
+        "open_basis": round(total_open_basis, 2),
+        "market_value": round(total_market_value, 2),
+        "open_pl": round(total_unrealized_pl, 2),
+        "open_pl_percent": round(total_unrealized_pl_percent, 2),
     }
 
 

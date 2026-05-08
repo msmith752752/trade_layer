@@ -1,6 +1,39 @@
 import yfinance as yf
 
 
+def get_current_price(symbol: str):
+    """
+    Lightweight current/latest price fetch.
+    Used for live portfolio P/L so newer ETFs or thin-history symbols
+    do not fail the full scanner requirements.
+    """
+    try:
+        symbol = symbol.upper().strip()
+        ticker = yf.Ticker(symbol)
+
+        fast_info = getattr(ticker, "fast_info", None)
+
+        if fast_info:
+            last_price = fast_info.get("last_price")
+            if last_price:
+                return round(float(last_price), 2)
+
+        hist = ticker.history(period="5d", interval="1d")
+
+        if hist.empty:
+            print(f"No current price data for {symbol}")
+            return None
+
+        latest = hist.iloc[-1]
+        current_price = float(latest["Close"])
+
+        return round(current_price, 2)
+
+    except Exception as e:
+        print(f"Error fetching current price for {symbol}: {e}")
+        return None
+
+
 def get_daily_change(symbol: str):
     """
     Fetches the latest daily percentage change for a symbol.
@@ -91,7 +124,7 @@ def get_market_data(symbol: str):
             "avg_volume_20": int(avg_volume_20),
             "daily_change_pct": round(daily_change_pct, 2),
 
-            # New relative strength fields
+            # Relative strength fields
             "spy_daily_change_pct": spy_daily_change_pct,
             "relative_strength_vs_spy": relative_strength_vs_spy,
             "relative_strength_label": relative_strength_label,
