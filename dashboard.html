@@ -167,6 +167,35 @@
             margin-top: 22px;
         }
 
+        .risk-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 14px;
+            background: #0f1523;
+            border: 1px solid #263044;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .risk-button {
+            width: 100%;
+            padding: 14px;
+            background: #2563eb;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .risk-button:hover {
+            opacity: 0.92;
+        }
+
         @media(max-width: 1000px) {
             .main-grid,
             .bottom-grid,
@@ -195,6 +224,7 @@
 <script>
 
 async function loadDashboard() {
+
     const response = await fetch("http://127.0.0.1:8000/trade-scan");
     const data = await response.json();
 
@@ -213,6 +243,7 @@ async function loadDashboard() {
         <div class="main-grid">
 
             <div class="card">
+
                 <div class="symbol">${top.symbol}</div>
                 <div class="subtitle">${top.market_state}</div>
 
@@ -223,6 +254,7 @@ async function loadDashboard() {
                 </div>
 
                 <div class="metric-grid">
+
                     <div class="metric">
                         <div class="label">Entry</div>
                         <div class="value">$${top.entry}</div>
@@ -245,65 +277,74 @@ async function loadDashboard() {
 
                     <div class="metric">
                         <div class="label">RS vs SPY</div>
-                        <div class="value ${rsClass}">${top.relative_strength_vs_spy}%</div>
+                        <div class="value ${rsClass}">
+                            ${top.relative_strength_vs_spy}%
+                        </div>
                     </div>
 
                     <div class="metric">
                         <div class="label">Expected Hold</div>
                         <div class="value">${top.expected_hold}</div>
                     </div>
+
                 </div>
 
                 <div class="why-box">
                     <div class="section-title">Why This Strategy</div>
+
                     ${(top.strategy_reason || [])
                         .map(r => `<div class="small">• ${r}</div>`)
                         .join("")}
                 </div>
+
             </div>
 
             <div class="card">
-                <div class="section-title">Trade Summary</div>
 
-                <div class="small">
-                    <strong>Market State:</strong><br>
-                    ${top.state_reason}
-                </div>
+                <div class="section-title">Risk Management</div>
 
-                <br>
+                <input
+                    id="accountValue"
+                    class="risk-input"
+                    type="number"
+                    value="25000"
+                    placeholder="Account Value"
+                >
 
-                <div class="small">
-                    <strong>Rank Reason:</strong><br>
-                    ${top.rank_reason}
-                </div>
+                <input
+                    id="riskPercent"
+                    class="risk-input"
+                    type="number"
+                    value="2"
+                    placeholder="Risk %"
+                >
 
-                <br>
+                <button
+                    class="risk-button"
+                    onclick="calculateRisk(${top.entry}, ${top.stop_loss})"
+                >
+                    Calculate Position Size
+                </button>
 
-                <div class="small">
-                    <strong>Exit Rule:</strong><br>
-                    ${top.exit_rule}
-                </div>
+                <div id="riskResults"></div>
 
-                <br>
-
-                <div class="small">
-                    <strong>Options Summary:</strong><br>
-                    ${top.options_summary}
-                </div>
             </div>
 
         </div>
 
         <div class="card top-opportunities">
             <div class="section-title">Top Opportunities</div>
+
             <div class="opportunity-grid">
                 ${renderOpportunityCards(data.trade_opportunities)}
             </div>
         </div>
 
         <div class="bottom-grid">
+
             <div class="card">
                 <div class="section-title">Watchlist</div>
+
                 <div class="list">
                     ${renderRows(data.watchlist)}
                 </div>
@@ -311,10 +352,78 @@ async function loadDashboard() {
 
             <div class="card">
                 <div class="section-title">Avoid / Weak Environment</div>
+
                 <div class="list">
                     ${renderRows(data.avoid)}
                 </div>
             </div>
+
+        </div>
+    `;
+
+    calculateRisk(top.entry, top.stop_loss);
+}
+
+async function calculateRisk(entry, stop) {
+
+    const accountValue =
+        document.getElementById("accountValue").value;
+
+    const riskPercent =
+        document.getElementById("riskPercent").value;
+
+    const response = await fetch(
+        `http://127.0.0.1:8000/risk-plan?account_value=${accountValue}&risk_percent=${riskPercent}&entry_price=${entry}&stop_price=${stop}`
+    );
+
+    const data = await response.json();
+
+    document.getElementById("riskResults").innerHTML = `
+
+        <div class="metric-grid">
+
+            <div class="metric">
+                <div class="label">Allowed Risk</div>
+                <div class="value red">
+                    $${data.allowed_risk_dollars}
+                </div>
+            </div>
+
+            <div class="metric">
+                <div class="label">Suggested Shares</div>
+                <div class="value">
+                    ${data.suggested_shares}
+                </div>
+            </div>
+
+            <div class="metric">
+                <div class="label">Max Loss</div>
+                <div class="value red">
+                    $${data.estimated_max_loss}
+                </div>
+            </div>
+
+            <div class="metric">
+                <div class="label">Risk / Share</div>
+                <div class="value">
+                    $${data.risk_per_share}
+                </div>
+            </div>
+
+            <div class="metric">
+                <div class="label">Position Value</div>
+                <div class="value">
+                    $${data.position_value}
+                </div>
+            </div>
+
+            <div class="metric">
+                <div class="label">Exposure %</div>
+                <div class="value yellow">
+                    ${data.position_exposure_percent}%
+                </div>
+            </div>
+
         </div>
     `;
 }
@@ -326,9 +435,12 @@ function getRsClass(value) {
 }
 
 function renderOpportunityCards(items) {
+
     return items.slice(0, 4).map(item => {
+
         return `
             <div class="row">
+
                 <div class="row-top">
                     <div class="row-symbol">${item.symbol}</div>
                     <div class="row-score">${item.score}</div>
@@ -336,22 +448,34 @@ function renderOpportunityCards(items) {
 
                 <div class="small">${item.market_state}</div>
                 <div class="small">${item.recommended_strategy}</div>
+
                 <div class="small">
                     RS vs SPY:
+
                     <span class="${getRsClass(item.relative_strength_vs_spy)}">
                         ${item.relative_strength_vs_spy}%
                     </span>
                 </div>
-                <div class="small">Entry: $${item.entry} | Target: $${item.target}</div>
+
+                <div class="small">
+                    Entry: $${item.entry}
+                    |
+                    Target: $${item.target}
+                </div>
+
             </div>
         `;
+
     }).join("");
 }
 
 function renderRows(items) {
+
     return items.slice(0, 6).map(item => {
+
         return `
             <div class="row">
+
                 <div class="row-top">
                     <div class="row-symbol">${item.symbol}</div>
                     <div class="row-score">${item.score}</div>
@@ -359,14 +483,18 @@ function renderRows(items) {
 
                 <div class="small">${item.market_state}</div>
                 <div class="small">${item.recommended_strategy}</div>
+
                 <div class="small">
                     RS vs SPY:
+
                     <span class="${getRsClass(item.relative_strength_vs_spy)}">
                         ${item.relative_strength_vs_spy}%
                     </span>
                 </div>
+
             </div>
         `;
+
     }).join("");
 }
 

@@ -8,6 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.market_data import get_market_data
 from app.trade_engine import generate_trade_signal
 
+from app.risk_engine import (
+    calculate_risk_plan,
+    get_risk_percent_levels,
+)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -284,3 +289,25 @@ def get_portfolio():
     return {
         "open_pl": round(open_pl, 2)
     }
+
+
+@app.get("/risk-levels")
+def risk_levels(account_value: float):
+
+    return get_risk_percent_levels(account_value)
+
+
+@app.get("/risk-plan")
+def risk_plan(
+    account_value: float,
+    risk_percent: float,
+    entry_price: float,
+    stop_price: float,
+):
+
+    return calculate_risk_plan(
+        account_value=account_value,
+        risk_percent=risk_percent,
+        entry_price=entry_price,
+        stop_price=stop_price,
+    )
