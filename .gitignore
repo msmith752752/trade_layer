@@ -4,3 +4,7 @@ __pycache__/
 venv/
 trade_log.json
 *.docx
+trade_log.json
+paper_portfolio.json
+portfolio_data.json
+*.local.json

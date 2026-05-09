@@ -230,6 +230,150 @@
             gap: 14px;
         }
 
+        .portfolio-section {
+            margin-bottom: 22px;
+        }
+
+        .portfolio-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .portfolio-card {
+            background: var(--card-soft);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .portfolio-card-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .account-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .portfolio-score-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .mini-metric {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .driver-box {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .driver-box strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+
+        .account-position-group {
+            background: var(--card-soft);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .account-position-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .account-position-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .account-position-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 4px;
+        }
+
+        .account-position-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .account-position-summary {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .account-position-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(110px, 1fr));
+            gap: 10px;
+            min-width: 360px;
+        }
+
+        .account-position-metric {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .account-position-metric .label {
+            margin-bottom: 5px;
+            font-size: 10px;
+        }
+
+        .account-position-metric .value {
+            font-size: 17px;
+        }
+
+        .recommendation-box {
+            margin-top: 12px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.18);
+        }
+
+        .recommendation-box strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--blue);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table.grouped {
+            min-width: 720px;
+        }
+
         .bottom-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -334,7 +478,8 @@
             .main-grid,
             .bottom-grid,
             .positions-grid,
-            .opportunity-grid {
+            .opportunity-grid,
+            .portfolio-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -347,6 +492,15 @@
             .header {
                 flex-direction: column;
             }
+
+            .account-position-header {
+                flex-direction: column;
+            }
+
+            .account-position-metrics {
+                min-width: 0;
+                width: 100%;
+            }
         }
 
         @media(max-width: 650px) {
@@ -356,7 +510,8 @@
 
             .metric-grid,
             .metric-grid.two,
-            .metric-grid.three {
+            .metric-grid.three,
+            .portfolio-score-row {
                 grid-template-columns: 1fr;
             }
 
@@ -389,6 +544,7 @@ async function loadDashboard() {
         const scanData = await fetchJson(`${API_BASE}/trade-scan`);
         const tradeLogData = await fetchJson(`${API_BASE}/trade-log`, { optional: true });
         const portfolioData = await fetchJson(`${API_BASE}/portfolio`, { optional: true });
+        const portfolioAnalysisData = await fetchJson(`${API_BASE}/portfolio-analysis`, { optional: true });
         const performanceData = await fetchJson(`${API_BASE}/performance`, { optional: true });
 
         const top = scanData.top_trade;
@@ -400,8 +556,8 @@ async function loadDashboard() {
             return;
         }
 
-        renderDashboard(scanData, tradeLogData, portfolioData, performanceData);
-        calculateRisk(top.entry, top.stop_loss);
+        renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysisData, performanceData);
+        calculateRisk(top.entry, top.stop_loss, top.symbol);
         updateRefreshStatus();
 
     } catch (error) {
@@ -439,7 +595,7 @@ async function fetchJson(url, options = {}) {
     }
 }
 
-function renderDashboard(scanData, tradeLogData, portfolioData, performanceData) {
+function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysisData, performanceData) {
     const top = scanData.top_trade;
     const rsClass = getRsClass(top.relative_strength_vs_spy);
     const environmentClass = getEnvironmentClass(top.market_state);
@@ -499,34 +655,22 @@ function renderDashboard(scanData, tradeLogData, portfolioData, performanceData)
             <div class="card">
                 <div class="section-title">Risk Management</div>
                 <div class="section-subtitle">
-                    Calculate position size using account value, max risk per trade, entry, and stop.
+                    Environment-aware sizing using account value, max risk, entry, stop, market state, and exposure caps.
                 </div>
 
                 <div class="risk-field">
                     <label for="accountValue">Account Value ($)</label>
-                    <input
-                        id="accountValue"
-                        class="risk-input"
-                        type="number"
-                        value="25000"
-                        placeholder="Example: 25000"
-                    >
+                    <input id="accountValue" class="risk-input" type="number" value="25000">
                 </div>
 
                 <div class="risk-field">
                     <label for="riskPercent">Max Risk Per Trade (%)</label>
-                    <input
-                        id="riskPercent"
-                        class="risk-input"
-                        type="number"
-                        value="2"
-                        placeholder="Example: 2"
-                    >
+                    <input id="riskPercent" class="risk-input" type="number" value="2">
                 </div>
 
                 <button
                     class="risk-button"
-                    onclick="calculateRisk(${Number(top.entry)}, ${Number(top.stop_loss)})"
+                    onclick="calculateRisk(${Number(top.entry)}, ${Number(top.stop_loss)}, '${safe(top.symbol)}')"
                 >
                     Calculate Position Size
                 </button>
@@ -546,13 +690,15 @@ function renderDashboard(scanData, tradeLogData, portfolioData, performanceData)
             </div>
         </div>
 
+        ${renderPortfolioAnalysis(portfolioAnalysisData)}
+
         <div class="positions-grid">
             <div class="card">
                 <div class="section-title">Open Positions</div>
                 <div class="section-subtitle">
                     Live unrealized P/L calculated from current market price, share count, and cost basis.
                 </div>
-                ${renderOpenPositions(tradeLogData, portfolioData)}
+                ${renderOpenPositions(tradeLogData, portfolioData, portfolioAnalysisData)}
             </div>
 
             <div class="card">
@@ -590,58 +736,190 @@ function renderDashboard(scanData, tradeLogData, portfolioData, performanceData)
     `;
 }
 
-async function calculateRisk(entry, stop) {
+function renderPortfolioAnalysis(data) {
+    const accounts = data?.portfolio_analyses || [];
+
+    if (!accounts.length) {
+        return `
+            <div class="card portfolio-section">
+                <div class="section-title">Portfolio Intelligence</div>
+                <div class="empty-state">
+                    Portfolio analysis unavailable. Confirm /portfolio-analysis is running.
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="card portfolio-section">
+            <div class="section-title">Portfolio Intelligence</div>
+            <div class="section-subtitle">
+                Account-level health, stability, concentration, defensive reserves, and speculative exposure.
+            </div>
+
+            <div class="portfolio-grid">
+                ${accounts.map(renderAccountCard).join("")}
+            </div>
+        </div>
+    `;
+}
+
+function renderAccountCard(account) {
+    const healthClass = getHealthClass(account.portfolio_health_label);
+    const stabilityClass = getStabilityClass(account.portfolio_stability_label);
+    const concentrationClass = getConcentrationClass(account.concentration_label);
+
+    const positions = account.positions || [];
+
+    let portfolioMode = "real";
+
+    if (positions.length > 0) {
+        portfolioMode = positions[0].portfolio_mode || "real";
+    }
+
+    const modeBadge =
+        portfolioMode === "paper"
+            ? `<div class="badge purple">SIMULATION</div>`
+            : `<div class="badge green-bg">REAL CAPITAL</div>`;
+
+    return `
+        <div class="portfolio-card">
+            <div class="portfolio-card-top">
+                <div>
+                    <div class="account-name">${safe(account.account)}</div>
+                    <div class="small">${formatCurrency(account.total_value)} total value</div>
+                </div>
+
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    ${modeBadge}
+
+                    <div class="badge ${stabilityClass}">
+                        ${safe(account.portfolio_stability_label)}
+                    </div>
+                </div>
+            </div>
+
+            <div class="badge-row">
+                <div class="badge ${healthClass}">
+                    Health: ${safe(account.portfolio_health_label)}
+                </div>
+
+                <div class="badge ${concentrationClass}">
+                    ${safe(account.concentration_label)}
+                </div>
+            </div>
+
+            <div class="portfolio-score-row">
+                <div class="mini-metric">
+                    <div class="label">Health Score</div>
+
+                    <div class="value ${healthClass.replace("-bg", "")}">
+                        ${safe(account.portfolio_health_score)}
+                    </div>
+                </div>
+
+                <div class="mini-metric">
+                    <div class="label">Stability Score</div>
+
+                    <div class="value ${stabilityClass.replace("-bg", "")}">
+                        ${safe(account.portfolio_stability_score)}
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-grid three">
+                <div class="metric">
+                    <div class="label">Defensive</div>
+                    <div class="value blue">
+                        ${formatPercent(account.bucket_percents?.defensive)}
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">Speculative</div>
+                    <div class="value yellow">
+                        ${formatPercent(account.bucket_percents?.speculative)}
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">Largest</div>
+
+                    <div class="value">
+                        ${safe(account.largest_position?.symbol)}
+                    </div>
+
+                    <div class="small">
+                        ${formatPercent(account.largest_position?.percent)}
+                    </div>
+                </div>
+            </div>
+
+            <div class="driver-box">
+                <strong class="green">Stability Drivers</strong>
+                ${renderMiniList(account.stability_drivers)}
+            </div>
+
+            <div class="driver-box">
+                <strong class="red">Instability Drivers</strong>
+                ${renderMiniList(account.instability_drivers)}
+            </div>
+
+            <div class="driver-box">
+                <strong class="yellow">Warnings</strong>
+                ${renderMiniList(account.warnings)}
+            </div>
+        </div>
+    `;
+}
+
+async function calculateRisk(entry, stop, symbol = "") {
     try {
         const accountValue = document.getElementById("accountValue").value;
         const riskPercent = document.getElementById("riskPercent").value;
 
+        const symbolParam = symbol ? `&symbol=${encodeURIComponent(symbol)}` : "";
+
         const data = await fetchJson(
-            `${API_BASE}/risk-plan?account_value=${accountValue}&risk_percent=${riskPercent}&entry_price=${entry}&stop_price=${stop}`
+            `${API_BASE}/risk-plan?account_value=${accountValue}&risk_percent=${riskPercent}&entry_price=${entry}&stop_price=${stop}${symbolParam}`
         );
 
         document.getElementById("riskResults").innerHTML = `
             <div class="metric-grid two">
                 <div class="metric">
                     <div class="label">Allowed Risk</div>
-                    <div class="value red">
-                        ${formatCurrency(data.allowed_risk_dollars)}
-                    </div>
+                    <div class="value red">${formatCurrency(data.allowed_risk_dollars)}</div>
                 </div>
 
                 <div class="metric">
                     <div class="label">Suggested Shares</div>
-                    <div class="value">
-                        ${safe(data.suggested_shares)}
-                    </div>
+                    <div class="value">${safe(data.suggested_shares)}</div>
                 </div>
 
                 <div class="metric">
                     <div class="label">Estimated Max Loss</div>
-                    <div class="value red">
-                        ${formatCurrency(data.estimated_max_loss)}
-                    </div>
+                    <div class="value red">${formatCurrency(data.estimated_max_loss)}</div>
                 </div>
 
                 <div class="metric">
                     <div class="label">Risk / Share</div>
-                    <div class="value">
-                        ${formatCurrency(data.risk_per_share)}
-                    </div>
-                </div>
-
-                <div class="metric">
-                    <div class="label">Position Value</div>
-                    <div class="value">
-                        ${formatCurrency(data.position_value)}
-                    </div>
+                    <div class="value">${formatCurrency(data.risk_per_share)}</div>
                 </div>
 
                 <div class="metric">
                     <div class="label">Account Exposure</div>
-                    <div class="value yellow">
-                        ${formatPercent(data.position_exposure_percent)}
-                    </div>
+                    <div class="value yellow">${formatPercent(data.position_exposure_percent)}</div>
                 </div>
+
+                <div class="metric">
+                    <div class="label">Environment</div>
+                    <div class="value blue">${safe(data.environment_label)}</div>
+                </div>
+            </div>
+
+            <div class="empty-state">
+                ${safe(data.risk_summary)}
+                ${data.warnings?.length ? `<br><br>${data.warnings.map(w => `• ${safe(w)}`).join("<br>")}` : ""}
             </div>
         `;
     } catch (error) {
@@ -654,7 +932,7 @@ async function calculateRisk(entry, stop) {
     }
 }
 
-function renderOpenPositions(tradeLogData, portfolioData) {
+function renderOpenPositions(tradeLogData, portfolioData, portfolioAnalysisData) {
     const portfolioPositions = normalizeArray(portfolioData?.open_positions || portfolioData?.positions);
     const loggedTrades = normalizeTradeLog(tradeLogData);
 
@@ -663,17 +941,16 @@ function renderOpenPositions(tradeLogData, portfolioData) {
         : loggedTrades.filter(t => isOpenTrade(t));
 
     if (openItems.length === 0) {
-        return `
-            <div class="empty-state">
-                No open positions found yet. Once /trade-log or /portfolio returns open positions, they will appear here.
-            </div>
-        `;
+        return `<div class="empty-state">No open positions found yet.</div>`;
     }
 
     const openPL = portfolioData?.open_pl;
     const openPLPercent = portfolioData?.open_pl_percent;
     const marketValue = portfolioData?.market_value;
     const openBasis = portfolioData?.open_basis;
+
+    const analysisByAccount = buildAnalysisByAccount(portfolioAnalysisData);
+    const grouped = groupPositionsByAccount(openItems);
 
     return `
         <div class="metric-grid three">
@@ -697,44 +974,242 @@ function renderOpenPositions(tradeLogData, portfolioData) {
             Cost basis tracked: ${formatCurrencyOrDash(openBasis)}
         </div>
 
-        <div class="table-wrap">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Account</th>
-                        <th>Symbol</th>
-                        <th>Qty</th>
-                        <th>Cost</th>
-                        <th>Current</th>
-                        <th>Value</th>
-                        <th>P/L</th>
-                        <th>P/L %</th>
-                        <th>Guidance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${openItems.map(item => {
-                        const pnl = getFirstValue(item, ["unrealized_pl", "unrealized_p_l", "p_l", "pl", "unrealized"]);
-                        const pnlPercent = getFirstValue(item, ["unrealized_pl_percent", "p_l_percent", "pl_percent"]);
-
-                        return `
-                            <tr>
-                                <td>${safe(getFirstValue(item, ["account", "account_type"], "—"))}</td>
-                                <td><strong>${safe(item.symbol)}</strong></td>
-                                <td>${formatShares(getFirstValue(item, ["shares", "quantity", "qty"], "—"))}</td>
-                                <td>${formatCurrency(getFirstValue(item, ["cost_basis", "entry", "price", "buy_price"]))}</td>
-                                <td>${formatCurrencyOrDash(getFirstValue(item, ["current_price", "current", "last_price"]))}</td>
-                                <td>${formatCurrencyOrDash(getFirstValue(item, ["market_value", "position_value", "value"]))}</td>
-                                <td class="${getPnlClass(pnl)}">${formatCurrencyOrDash(pnl)}</td>
-                                <td class="${getPnlClass(pnlPercent)}">${formatPercent(pnlPercent)}</td>
-                                <td>${safe(getPositionGuidance(item, pnl))}</td>
-                            </tr>
-                        `;
-                    }).join("")}
-                </tbody>
-            </table>
+        <div class="list">
+            ${Object.entries(grouped).map(([accountName, items]) => {
+                const analysis = analysisByAccount[accountName] || null;
+                return renderAccountPositionGroup(accountName, items, analysis);
+            }).join("")}
         </div>
     `;
+}
+
+function renderAccountPositionGroup(accountName, items, analysis) {
+    const stats = calculateAccountPositionStats(items);
+    const mode = getAccountModeFromPositions(items, analysis);
+    const modeBadge = renderModeBadge(mode);
+    const recommendationLabel = analysis?.account_recommendation_label;
+    const recommendation = analysis?.account_recommendation;
+    const recommendationReason = analysis?.account_recommendation_reason;
+
+    return `
+        <div class="account-position-group">
+            <div class="account-position-header">
+                <div>
+                    <div class="account-position-title-row">
+                        <div class="account-position-title">${safe(accountName)}</div>
+                        ${modeBadge}
+                        ${recommendationLabel ? `<div class="badge ${getRecommendationClass(recommendationLabel)}">${safe(recommendationLabel)}</div>` : ""}
+                    </div>
+
+                    <div class="account-position-summary">
+                        ${items.length} open position${items.length === 1 ? "" : "s"}
+                        ${analysis?.portfolio_stability_label ? ` • ${safe(analysis.portfolio_stability_label)} stability` : ""}
+                        ${analysis?.concentration_label ? ` • ${safe(analysis.concentration_label)}` : ""}
+                    </div>
+                </div>
+
+                <div class="account-position-metrics">
+                    <div class="account-position-metric">
+                        <div class="label">Value</div>
+                        <div class="value">${formatCurrencyOrDash(stats.marketValue)}</div>
+                    </div>
+
+                    <div class="account-position-metric">
+                        <div class="label">Open P/L</div>
+                        <div class="value ${getPnlClass(stats.openPL)}">${formatCurrencyOrDash(stats.openPL)}</div>
+                    </div>
+
+                    <div class="account-position-metric">
+                        <div class="label">Open P/L %</div>
+                        <div class="value ${getPnlClass(stats.openPLPercent)}">${formatPercent(stats.openPLPercent)}</div>
+                    </div>
+                </div>
+            </div>
+
+            ${recommendation ? `
+                <div class="recommendation-box">
+                    <strong>Account Recommendation</strong>
+                    <div class="small">
+                        <span class="${getRecommendationTextClass(recommendationLabel)}">${safe(recommendation)}</span>
+                        ${recommendationReason ? ` — ${safe(recommendationReason)}` : ""}
+                    </div>
+                </div>
+            ` : ""}
+
+            <div class="table-wrap">
+                <table class="table grouped">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Qty</th>
+                            <th>Cost</th>
+                            <th>Current</th>
+                            <th>Value</th>
+                            <th>P/L</th>
+                            <th>P/L %</th>
+                            <th>Guidance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(item => {
+                            const pnl = getFirstValue(item, ["unrealized_pl", "unrealized_p_l", "p_l", "pl", "unrealized"]);
+                            const pnlPercent = getFirstValue(item, ["unrealized_pl_percent", "p_l_percent", "pl_percent"]);
+
+                            return `
+                                <tr>
+                                    <td><strong>${safe(item.symbol)}</strong></td>
+                                    <td>${formatShares(getFirstValue(item, ["shares", "quantity", "qty"], "—"))}</td>
+                                    <td>${formatCurrency(getFirstValue(item, ["cost_basis", "entry", "price", "buy_price"]))}</td>
+                                    <td>${formatCurrencyOrDash(getFirstValue(item, ["current_price", "current", "last_price"]))}</td>
+                                    <td>${formatCurrencyOrDash(getFirstValue(item, ["market_value", "position_value", "value"]))}</td>
+                                    <td class="${getPnlClass(pnl)}">${formatCurrencyOrDash(pnl)}</td>
+                                    <td class="${getPnlClass(pnlPercent)}">${formatPercent(pnlPercent)}</td>
+                                    <td>${safe(getPositionGuidance(item, pnl))}</td>
+                                </tr>
+                            `;
+                        }).join("")}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function buildAnalysisByAccount(portfolioAnalysisData) {
+    const accounts = portfolioAnalysisData?.portfolio_analyses || [];
+    const map = {};
+
+    accounts.forEach(account => {
+        if (account.account) {
+            map[account.account] = account;
+        }
+    });
+
+    return map;
+}
+
+function groupPositionsByAccount(items) {
+    const grouped = {};
+
+    items.forEach(item => {
+        const accountName = getFirstValue(item, ["account", "account_type"], "Uncategorized");
+
+        if (!grouped[accountName]) {
+            grouped[accountName] = [];
+        }
+
+        grouped[accountName].push(item);
+    });
+
+    return Object.fromEntries(
+        Object.entries(grouped).sort(([accountA], [accountB]) => {
+            const orderA = getAccountSortRank(accountA);
+            const orderB = getAccountSortRank(accountB);
+
+            if (orderA !== orderB) {
+                return orderA - orderB;
+            }
+
+            return accountA.localeCompare(accountB);
+        })
+    );
+}
+
+function getAccountSortRank(accountName) {
+    const text = String(accountName || "").toLowerCase();
+
+    if (text.includes("ira 823")) return 1;
+    if (text.includes("roth")) return 2;
+    if (text.includes("individual")) return 3;
+    if (text.includes("hsa")) return 4;
+    if (text.includes("paper")) return 5;
+
+    return 9;
+}
+
+function calculateAccountPositionStats(items) {
+    let marketValue = 0;
+    let openPL = 0;
+    let basis = 0;
+
+    items.forEach(item => {
+        const value = Number(getFirstValue(item, ["market_value", "position_value", "value"], 0));
+        const pnl = Number(getFirstValue(item, ["unrealized_pl", "unrealized_p_l", "p_l", "pl", "unrealized"], 0));
+        const totalBasis = Number(getFirstValue(item, ["total_basis", "cost_basis_total"], null));
+        const shares = Math.abs(Number(getFirstValue(item, ["shares", "quantity", "qty"], 0)));
+        const cost = Number(getFirstValue(item, ["cost_basis", "entry", "price", "buy_price"], 0));
+
+        if (!Number.isNaN(value)) {
+            marketValue += value;
+        }
+
+        if (!Number.isNaN(pnl)) {
+            openPL += pnl;
+        }
+
+        if (totalBasis !== null && !Number.isNaN(totalBasis)) {
+            basis += Math.abs(totalBasis);
+        } else if (!Number.isNaN(shares) && !Number.isNaN(cost)) {
+            basis += shares * cost;
+        }
+    });
+
+    const openPLPercent = basis ? (openPL / basis) * 100 : 0;
+
+    return {
+        marketValue,
+        openPL,
+        openPLPercent,
+        basis,
+    };
+}
+
+function getAccountModeFromPositions(items, analysis) {
+    if (analysis?.portfolio_mode) {
+        return analysis.portfolio_mode;
+    }
+
+    for (const item of items) {
+        if (item.portfolio_mode) {
+            return item.portfolio_mode;
+        }
+    }
+
+    return "real";
+}
+
+function renderModeBadge(mode) {
+    return String(mode).toLowerCase() === "paper"
+        ? `<div class="badge purple">SIMULATION</div>`
+        : `<div class="badge green-bg">REAL CAPITAL</div>`;
+}
+
+function getRecommendationClass(value) {
+    const text = String(value || "").toLowerCase();
+
+    if (text.includes("reduce") || text.includes("avoid") || text.includes("raise")) {
+        return "red-bg";
+    }
+
+    if (text.includes("monitor") || text.includes("rebalance")) {
+        return "yellow-bg";
+    }
+
+    return "green-bg";
+}
+
+function getRecommendationTextClass(value) {
+    const text = String(value || "").toLowerCase();
+
+    if (text.includes("reduce") || text.includes("avoid") || text.includes("raise")) {
+        return "red";
+    }
+
+    if (text.includes("monitor") || text.includes("rebalance")) {
+        return "yellow";
+    }
+
+    return "green";
 }
 
 function renderClosedTrades(tradeLogData, performanceData) {
@@ -748,15 +1223,8 @@ function renderClosedTrades(tradeLogData, performanceData) {
     );
 
     const calculatedRealized = closedItems.reduce((sum, trade) => {
-        const pnl = Number(
-            getFirstValue(trade, ["realized_pl", "realized_p_l", "p_l", "pl"], 0)
-        );
-
-        if (Number.isNaN(pnl)) {
-            return sum;
-        }
-
-        return sum + pnl;
+        const pnl = Number(getFirstValue(trade, ["realized_pl", "realized_p_l", "p_l", "pl"], 0));
+        return Number.isNaN(pnl) ? sum : sum + pnl;
     }, 0);
 
     if (totalRealized === null || Number(totalRealized) === 0) {
@@ -764,11 +1232,7 @@ function renderClosedTrades(tradeLogData, performanceData) {
     }
 
     if (closedItems.length === 0 && totalRealized === null) {
-        return `
-            <div class="empty-state">
-                No closed trades found yet. Completed trades will show realized P/L here.
-            </div>
-        `;
+        return `<div class="empty-state">No closed trades found yet.</div>`;
     }
 
     return `
@@ -879,9 +1343,15 @@ function renderReasonList(reasons) {
         return `<div class="small">No strategy explanation returned yet.</div>`;
     }
 
-    return reasons
-        .map(r => `<div class="small">• ${safe(r)}</div>`)
-        .join("");
+    return reasons.map(r => `<div class="small">• ${safe(r)}</div>`).join("");
+}
+
+function renderMiniList(items) {
+    if (!items || items.length === 0) {
+        return `<div class="small">—</div>`;
+    }
+
+    return items.slice(0, 3).map(item => `<div class="small">• ${safe(item)}</div>`).join("");
 }
 
 function normalizeTradeLog(data) {
@@ -981,6 +1451,36 @@ function getEnvironmentClass(value) {
     if (text.includes("watch") || text.includes("neutral") || text.includes("mixed")) {
         return "yellow-bg";
     }
+
+    return "green-bg";
+}
+
+function getHealthClass(value) {
+    const text = String(value || "").toLowerCase();
+
+    if (text.includes("strong") || text.includes("stable")) return "green-bg";
+    if (text.includes("mixed") || text.includes("elevated")) return "yellow-bg";
+    if (text.includes("high risk")) return "red-bg";
+
+    return "";
+}
+
+function getStabilityClass(value) {
+    const text = String(value || "").toLowerCase();
+
+    if (text.includes("highly stable") || text === "stable") return "green-bg";
+    if (text.includes("moderately")) return "yellow-bg";
+    if (text.includes("unstable")) return "red-bg";
+
+    return "";
+}
+
+function getConcentrationClass(value) {
+    const text = String(value || "").toLowerCase();
+
+    if (text.includes("defensive")) return "blue";
+    if (text.includes("very high") || text.includes("high")) return "red-bg";
+    if (text.includes("elevated") || text.includes("moderate")) return "yellow-bg";
 
     return "green-bg";
 }
