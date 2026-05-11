@@ -1,7 +1,8 @@
 print("LOADING THIS FILE:", __file__)
 
 import json
-from datetime import datetime
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Optional
 
@@ -23,6 +24,18 @@ from app.position_guidance_engine import (
 
 from app.portfolio_engine import (
     analyze_portfolio,
+)
+
+from app.daily_action_engine import (
+    build_daily_action_plan,
+)
+
+from app.position_decision_engine import (
+    build_capital_allocation_guidance,
+)
+
+from app.market_driver_engine import (
+    build_market_driver_impact,
 )
 
 app = FastAPI()
@@ -341,6 +354,28 @@ def enrich_signal(signal: dict) -> dict:
 
 
 MARKET_BRIEFING_SYMBOLS = ["SPY", "QQQ", "IWM", "^VIX"]
+MARKET_DRIVER_SYMBOLS = [
+    "SPY", "QQQ", "IWM", "^VIX", "^TNX",
+    "USO", "XLK", "XLC", "XLY", "XLF", "XLE", "XLI", "XLV", "ARKK", "SGOV"
+]
+
+MARKET_OPEN_STRIP_SYMBOLS = [
+    {"symbol": "SPY", "label": "S&P 500"},
+    {"symbol": "QQQ", "label": "Nasdaq 100"},
+    {"symbol": "DIA", "label": "Dow"},
+    {"symbol": "IWM", "label": "Russell 2000"},
+    {"symbol": "^VIX", "label": "VIX"},
+    {"symbol": "^TNX", "label": "10Y Yield"},
+]
+
+MARKET_CLOSED_STRIP_SYMBOLS = [
+    {"symbol": "ES=F", "label": "S&P Futures"},
+    {"symbol": "NQ=F", "label": "Nasdaq Futures"},
+    {"symbol": "YM=F", "label": "Dow Futures"},
+    {"symbol": "RTY=F", "label": "Russell Futures"},
+    {"symbol": "^VIX", "label": "VIX"},
+    {"symbol": "^TNX", "label": "10Y Yield"},
+]
 
 
 def get_index_snapshot(symbol: str) -> dict:
@@ -384,6 +419,54 @@ def get_index_snapshot(symbol: str) -> dict:
         "raw_market_context": market_state,
     }
 
+
+
+def is_regular_market_open_now() -> bool:
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+
+    if now_et.weekday() >= 5:
+        return False
+
+    market_open = time(9, 30)
+    market_close = time(16, 0)
+    return market_open <= now_et.time() <= market_close
+
+
+def build_market_status_strip() -> dict:
+    market_is_open = is_regular_market_open_now()
+    symbols = MARKET_OPEN_STRIP_SYMBOLS if market_is_open else MARKET_CLOSED_STRIP_SYMBOLS
+    display_mode = "indexes" if market_is_open else "futures"
+    session = "OPEN" if market_is_open else "CLOSED"
+
+    items = []
+
+    for config in symbols:
+        symbol = config["symbol"]
+        snapshot = get_index_snapshot(symbol)
+        items.append({
+            "symbol": symbol,
+            "label": config["label"],
+            "status": snapshot.get("status"),
+            "price": snapshot.get("price"),
+            "change_percent": snapshot.get("daily_change_percent"),
+            "market_state": snapshot.get("market_state"),
+            "environment_score": snapshot.get("environment_score"),
+        })
+
+    summary = (
+        "Regular market is open. Showing live index ETFs and key risk gauges."
+        if market_is_open
+        else "Regular market is closed. Showing futures and overnight/pre-market risk gauges where available."
+    )
+
+    return {
+        "status": "ok",
+        "market_session": session,
+        "display_mode": display_mode,
+        "timestamp": datetime.now(ZoneInfo("America/New_York")).isoformat(),
+        "summary": summary,
+        "items": items,
+    }
 
 def classify_volatility_state(vix_snapshot: dict) -> dict:
     vix_price = safe_float(vix_snapshot.get("price"), None)
@@ -877,6 +960,135 @@ def daily_briefing():
         scan_data = None
 
     return build_daily_market_briefing(scan_data=scan_data)
+
+
+@app.get("/daily-action-plan")
+def daily_action_plan():
+    try:
+        scan_data = trade_scan()
+    except Exception as e:
+        print("ERROR BUILDING DAILY ACTION SCAN CONTEXT:", e)
+        scan_data = None
+
+    try:
+        briefing_data = build_daily_market_briefing(scan_data=scan_data)
+    except Exception as e:
+        print("ERROR BUILDING DAILY ACTION MARKET BRIEFING:", e)
+        briefing_data = None
+
+    try:
+        portfolio_data = get_portfolio()
+    except Exception as e:
+        print("ERROR BUILDING DAILY ACTION PORTFOLIO DATA:", e)
+        portfolio_data = None
+
+    try:
+        portfolio_analysis_data = portfolio_analysis()
+    except Exception as e:
+        print("ERROR BUILDING DAILY ACTION PORTFOLIO ANALYSIS:", e)
+        portfolio_analysis_data = None
+
+    return build_daily_action_plan(
+        briefing=briefing_data,
+        portfolio_data=portfolio_data,
+        portfolio_analysis_data=portfolio_analysis_data,
+        scan_data=scan_data,
+    )
+
+
+
+@app.get("/market-status-strip")
+def market_status_strip():
+    return build_market_status_strip()
+
+@app.get("/market-driver-impact")
+def market_driver_impact():
+    try:
+        scan_data = trade_scan()
+    except Exception as e:
+        print("ERROR BUILDING MARKET DRIVER SCAN CONTEXT:", e)
+        scan_data = None
+
+    try:
+        briefing_data = build_daily_market_briefing(scan_data=scan_data)
+    except Exception as e:
+        print("ERROR BUILDING MARKET DRIVER BRIEFING CONTEXT:", e)
+        briefing_data = None
+
+    try:
+        portfolio_data = get_portfolio()
+    except Exception as e:
+        print("ERROR BUILDING MARKET DRIVER PORTFOLIO CONTEXT:", e)
+        portfolio_data = None
+
+    driver_snapshots = {}
+
+    for symbol in MARKET_DRIVER_SYMBOLS:
+        try:
+            driver_snapshots[symbol] = get_index_snapshot(symbol)
+        except Exception as e:
+            print(f"ERROR FETCHING MARKET DRIVER {symbol}:", e)
+            driver_snapshots[symbol] = {
+                "symbol": symbol,
+                "status": "unavailable",
+                "price": None,
+                "daily_change_percent": None,
+                "market_state": None,
+                "environment_score": None,
+                "state_reason": f"Could not fetch market-driver data for {symbol}.",
+            }
+
+    return build_market_driver_impact(
+        briefing=briefing_data,
+        portfolio_data=portfolio_data,
+        scan_data=scan_data,
+        driver_snapshots=driver_snapshots,
+    )
+
+
+@app.get("/capital-allocation-guidance")
+def capital_allocation_guidance():
+    try:
+        scan_data = trade_scan()
+    except Exception as e:
+        print("ERROR BUILDING CAPITAL ALLOCATION SCAN CONTEXT:", e)
+        scan_data = None
+
+    try:
+        briefing_data = build_daily_market_briefing(scan_data=scan_data)
+    except Exception as e:
+        print("ERROR BUILDING CAPITAL ALLOCATION MARKET BRIEFING:", e)
+        briefing_data = None
+
+    try:
+        portfolio_data = get_portfolio()
+    except Exception as e:
+        print("ERROR BUILDING CAPITAL ALLOCATION PORTFOLIO DATA:", e)
+        portfolio_data = None
+
+    try:
+        portfolio_analysis_data = portfolio_analysis()
+    except Exception as e:
+        print("ERROR BUILDING CAPITAL ALLOCATION PORTFOLIO ANALYSIS:", e)
+        portfolio_analysis_data = None
+
+    try:
+        daily_action_data = build_daily_action_plan(
+            briefing=briefing_data,
+            portfolio_data=portfolio_data,
+            portfolio_analysis_data=portfolio_analysis_data,
+            scan_data=scan_data,
+        )
+    except Exception as e:
+        print("ERROR BUILDING CAPITAL ALLOCATION DAILY ACTION CONTEXT:", e)
+        daily_action_data = None
+
+    return build_capital_allocation_guidance(
+        briefing=briefing_data,
+        portfolio_data=portfolio_data,
+        portfolio_analysis_data=portfolio_analysis_data,
+        daily_action_data=daily_action_data,
+    )
 
 
 @app.get("/portfolio-analysis")
