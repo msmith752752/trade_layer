@@ -766,6 +766,93 @@
         }
 
 
+        .trade-recommendation-card {
+            margin-bottom: 22px;
+            border-color: rgba(34,197,94,0.34);
+            background: linear-gradient(135deg, rgba(21,27,43,0.98), rgba(12,20,31,0.98));
+        }
+
+        .trade-recommendation-hero {
+            display: grid;
+            grid-template-columns: 0.95fr 1.05fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .recommendation-command-panel {
+            background: linear-gradient(135deg, rgba(34,197,94,0.14), rgba(15,21,35,0.94));
+            border: 1px solid rgba(34,197,94,0.24);
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .recommendation-label {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+        }
+
+        .recommendation-symbol-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+
+        .recommendation-symbol {
+            font-size: 44px;
+            font-weight: bold;
+            letter-spacing: -1px;
+        }
+
+        .recommendation-expression {
+            font-size: 30px;
+            font-weight: bold;
+            letter-spacing: -0.4px;
+            margin-bottom: 8px;
+        }
+
+        .recommendation-summary-box {
+            background: var(--card-soft);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            color: #d1d5db;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .recommendation-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .recommendation-reason-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 14px;
+        }
+
+        .recommendation-reason-panel {
+            background: var(--card-soft);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .recommendation-warning-panel {
+            background: rgba(250,204,21,0.08);
+            border: 1px solid rgba(250,204,21,0.18);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+
         .market-status-strip {
             background: linear-gradient(135deg, rgba(15,21,35,0.98), rgba(17,27,46,0.98));
             border: 1px solid rgba(59,130,246,0.28);
@@ -846,12 +933,15 @@
 
         @media(max-width: 1100px) {
             .main-grid,
+            .trade-recommendation-hero,
+            .recommendation-reason-grid,
             .bottom-grid,
             .positions-grid,
             .opportunity-grid,
             .portfolio-grid,
             .daily-action-hero,
             .action-plan-grid,
+            .recommendation-detail-grid,
             .position-action-grid,
             .capital-allocation-hero,
             .capital-decision-grid,
@@ -863,8 +953,11 @@
             .market-strip-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+                grid-template-columns: repeat(2, 1fr);
+            }
 
             .metric-grid,
+            .recommendation-detail-grid,
             .metric-grid.two,
             .metric-grid.three {
                 grid-template-columns: repeat(2, 1fr);
@@ -890,10 +983,13 @@
             }
 
             .metric-grid,
+            .recommendation-detail-grid,
             .metric-grid.two,
             .metric-grid.three,
             .portfolio-score-row,
             .market-strip-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
                 grid-template-columns: 1fr;
             }
 
@@ -932,6 +1028,7 @@ async function loadDashboard() {
         const capitalAllocationData = await fetchJson(`${API_BASE}/capital-allocation-guidance`, { optional: true });
         const marketDriverData = await fetchJson(`${API_BASE}/market-driver-impact`, { optional: true });
         const marketStatusData = await fetchJson(`${API_BASE}/market-status-strip`, { optional: true });
+        const tradeRecommendationData = await fetchJson(`${API_BASE}/trade-recommendations`, { optional: true });
 
         const top = scanData.top_trade;
 
@@ -942,7 +1039,7 @@ async function loadDashboard() {
             return;
         }
 
-        renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysisData, performanceData, dailyActionData, capitalAllocationData, marketDriverData, marketStatusData);
+        renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysisData, performanceData, dailyActionData, capitalAllocationData, marketDriverData, marketStatusData, tradeRecommendationData);
         calculateRisk(top.entry, top.stop_loss, top.symbol);
         updateRefreshStatus();
 
@@ -981,13 +1078,15 @@ async function fetchJson(url, options = {}) {
     }
 }
 
-function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysisData, performanceData, dailyActionData, capitalAllocationData, marketDriverData, marketStatusData) {
+function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysisData, performanceData, dailyActionData, capitalAllocationData, marketDriverData, marketStatusData, tradeRecommendationData) {
     const top = scanData.top_trade;
     const rsClass = getRsClass(top.relative_strength_vs_spy);
     const environmentClass = getEnvironmentClass(top.market_state);
 
     document.getElementById("dashboard").innerHTML = `
         ${renderMarketStatusStrip(marketStatusData)}
+
+        ${renderTradeRecommendationCard(tradeRecommendationData)}
 
         <div class="main-grid">
             <div class="card">
@@ -1134,6 +1233,153 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
 
 
 
+
+function renderTradeRecommendationCard(data) {
+    if (!data || data.status !== "ok") {
+        return `
+            <div class="card trade-recommendation-card">
+                <div class="section-title">Trade Recommendation</div>
+                <div class="empty-state">
+                    Trade recommendation unavailable. Confirm /trade-recommendations is running.
+                </div>
+            </div>
+        `;
+    }
+
+    const top = data.top_trade || {};
+    const option = data.options_recommendation || {};
+    const risk = option.risk_profile || {};
+    const market = data.market_context || {};
+    const expression = option.preferred_expression || "NO_TRADE";
+    const expressionLabel = formatExpressionLabel(expression);
+    const expressionClass = getExpressionClass(expression);
+    const confidenceClass = getConfidenceClass(option.confidence);
+    const warnings = option.warnings || [];
+
+    return `
+        <div class="card trade-recommendation-card">
+            <div class="section-title">Trade Recommendation</div>
+            <div class="section-subtitle">
+                Daily decision layer for the Individual 556 small-account test. Focus: consistency, defined risk, and capital preservation.
+            </div>
+
+            <div class="trade-recommendation-hero">
+                <div class="recommendation-command-panel">
+                    <div class="recommendation-label">Today’s Primary Candidate</div>
+                    <div class="recommendation-symbol-row">
+                        <div>
+                            <div class="recommendation-symbol">${safe(top.symbol || option.symbol)}</div>
+                            <div class="small">${safe(top.market_state)} · ${safe(top.expected_hold)}</div>
+                        </div>
+                        <div class="badge ${confidenceClass}">${safe(option.confidence)} Confidence</div>
+                    </div>
+
+                    <div class="recommendation-label">Preferred Expression</div>
+                    <div class="recommendation-expression ${expressionClass}">${safe(expressionLabel)}</div>
+
+                    <div class="recommendation-summary-box">
+                        ${safe(data.summary)}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="recommendation-detail-grid">
+                        <div class="metric">
+                            <div class="label">Account Value</div>
+                            <div class="value">${formatCurrency(data.account_value || risk.account_value)}</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="label">Preferred Risk</div>
+                            <div class="value yellow">${formatCurrency(risk.preferred_risk_per_trade)}</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="label">Max Risk</div>
+                            <div class="value red">${formatCurrency(risk.max_risk_per_trade)}</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="label">Conviction</div>
+                            <div class="value ${confidenceClass.replace("-bg", "")}">${safe(option.conviction_score)}</div>
+                        </div>
+                    </div>
+
+                    <div class="recommendation-detail-grid">
+                        <div class="metric">
+                            <div class="label">Entry</div>
+                            <div class="value">${formatCurrency(top.entry)}</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="label">Target</div>
+                            <div class="value green">${formatCurrency(top.target)}</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="label">Stop</div>
+                            <div class="value red">${formatCurrency(top.stop_loss)}</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="label">Market Regime</div>
+                            <div class="value blue" style="font-size:17px;">${safe(market.market_regime)}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recommendation-reason-grid">
+                <div class="recommendation-reason-panel">
+                    <div class="section-title">Why This Structure</div>
+                    <div class="small">${safe(option.reason)}</div>
+                    <div class="badge-row">
+                        <div class="badge blue-bg">Scanner: ${safe(option.scanner_recommended_strategy)}</div>
+                        <div class="badge">Options Pressure: ${safe(option.options_pressure)}</div>
+                        <div class="badge ${getMarketBiasClass(market.risk_appetite)}">Risk Appetite: ${safe(market.risk_appetite)}</div>
+                    </div>
+                </div>
+
+                <div class="recommendation-warning-panel">
+                    <div class="section-title">Risk Control</div>
+                    <div class="small">${safe(data.risk_note || risk.philosophy)}</div>
+                    ${warnings.length ? `<div style="margin-top:10px;">${warnings.map(item => `<div class="small">• ${safe(item)}</div>`).join("")}</div>` : `<div class="small" style="margin-top:10px;">No active warnings returned by the options engine.</div>`}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatExpressionLabel(value) {
+    const text = String(value || "").toUpperCase();
+    const labels = {
+        "BULL_CALL_VERTICAL_SPREAD": "Bull Call Vertical Spread",
+        "BEAR_PUT_VERTICAL_SPREAD": "Bear Put Vertical Spread",
+        "LONG_CALL": "Long Call",
+        "LONG_PUT": "Long Put",
+        "SHARES": "Shares",
+        "NO_TRADE": "No Trade"
+    };
+
+    return labels[text] || text.replaceAll("_", " ");
+}
+
+function getExpressionClass(value) {
+    const text = String(value || "").toUpperCase();
+    if (text.includes("BULL") || text.includes("CALL") || text === "SHARES") return "green";
+    if (text.includes("BEAR") || text.includes("PUT")) return "red";
+    if (text.includes("NO_TRADE")) return "yellow";
+    return "blue";
+}
+
+function getConfidenceClass(value) {
+    const text = String(value || "").toLowerCase();
+    if (text.includes("high")) return "green-bg";
+    if (text.includes("moderate") || text.includes("medium")) return "blue-bg";
+    if (text.includes("low")) return "yellow-bg";
+    return "blue-bg";
+}
+
 function renderMarketStatusStrip(data) {
     if (!data || data.status !== "ok") {
         return `
@@ -1171,12 +1417,14 @@ function renderMarketStatusStrip(data) {
 function renderMarketStripItem(item) {
     const change = Number(item.change_percent || 0);
     const changeClass = change > 0 ? "green" : change < 0 ? "red" : "yellow";
+    const directionLabel = change > 0 ? "Up today" : change < 0 ? "Down today" : "Flat / no move reported";
+
     return `
         <div class="market-strip-item">
             <div class="market-strip-symbol">${safe(item.label || item.symbol)}</div>
             <div class="market-strip-price">${formatMarketValue(item.price)}</div>
             <div class="market-strip-change ${changeClass}">${formatSignedPercent(item.change_percent)}</div>
-            <div class="small">${safe(item.symbol)}</div>
+            <div class="small">${safe(item.symbol)} · ${directionLabel}</div>
         </div>
     `;
 }
@@ -1325,8 +1573,9 @@ function renderRecommendationDriverImpactCard(item) {
                     <div class="value">${safe(item.scanner_score)}</div>
                 </div>
                 <div class="metric">
-                    <div class="label">Driver Quality</div>
-                    <div class="value ${impactClass}">${safe(item.driver_quality_score)}</div>
+                    <div class="label">Market Driver Confirmation</div>
+                    <div class="value ${getDriverQualityTextClass(item.driver_quality_score)}">${formatScoreOutOf100(item.driver_quality_score)}</div>
+                    <div class="small">${getDriverQualityLabel(item.driver_quality_score)}</div>
                 </div>
             </div>
             <div class="action-text"><strong>${safe(item.driver_action)}</strong></div>
@@ -1473,7 +1722,7 @@ function renderPositionDecisionCards(items) {
                     <div class="position-decision-top">
                         <div>
                             <div class="decision-symbol">${safe(item.symbol)}</div>
-                            <div class="small">${safe(item.account)} • ${safe(item.portfolio_mode)}</div>
+                            <div class="small">${safe(item.account)}</div>
                         </div>
                         <div class="badge ${getPriorityClass(item.priority)}">${safe(item.priority)}</div>
                     </div>
@@ -1650,7 +1899,7 @@ function renderPositionActionCards(items) {
                     <div class="position-action-top">
                         <div>
                             <div class="action-symbol">${safe(item.symbol)}</div>
-                            <div class="small">${safe(item.account)} • ${safe(item.portfolio_mode)}</div>
+                            <div class="small">${safe(item.account)}</div>
                         </div>
                         <div class="badge ${getPriorityClass(item.priority)}">${safe(item.priority)}</div>
                     </div>
@@ -1709,18 +1958,6 @@ function renderAccountCard(account) {
     const stabilityClass = getStabilityClass(account.portfolio_stability_label);
     const concentrationClass = getConcentrationClass(account.concentration_label);
 
-    const positions = account.positions || [];
-
-    let portfolioMode = "real";
-
-    if (positions.length > 0) {
-        portfolioMode = positions[0].portfolio_mode || "real";
-    }
-
-    const modeBadge =
-        portfolioMode === "paper"
-            ? `<div class="badge purple">SIMULATION</div>`
-            : `<div class="badge green-bg">REAL CAPITAL</div>`;
 
     return `
         <div class="portfolio-card">
@@ -1731,8 +1968,6 @@ function renderAccountCard(account) {
                 </div>
 
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    ${modeBadge}
-
                     <div class="badge ${stabilityClass}">
                         ${safe(account.portfolio_stability_label)}
                     </div>
@@ -1925,8 +2160,6 @@ function renderOpenPositions(tradeLogData, portfolioData, portfolioAnalysisData)
 
 function renderAccountPositionGroup(accountName, items, analysis) {
     const stats = calculateAccountPositionStats(items);
-    const mode = getAccountModeFromPositions(items, analysis);
-    const modeBadge = renderModeBadge(mode);
     const recommendationLabel = analysis?.account_recommendation_label;
     const recommendation = analysis?.account_recommendation;
     const recommendationReason = analysis?.account_recommendation_reason;
@@ -1937,7 +2170,6 @@ function renderAccountPositionGroup(accountName, items, analysis) {
                 <div>
                     <div class="account-position-title-row">
                         <div class="account-position-title">${safe(accountName)}</div>
-                        ${modeBadge}
                         ${recommendationLabel ? `<div class="badge ${getRecommendationClass(recommendationLabel)}">${safe(recommendationLabel)}</div>` : ""}
                     </div>
 
@@ -2119,9 +2351,7 @@ function getAccountModeFromPositions(items, analysis) {
 }
 
 function renderModeBadge(mode) {
-    return String(mode).toLowerCase() === "paper"
-        ? `<div class="badge purple">SIMULATION</div>`
-        : `<div class="badge green-bg">REAL CAPITAL</div>`;
+    return "";
 }
 
 function getRecommendationClass(value) {
@@ -2531,10 +2761,48 @@ function getReducePermissionClass(value) {
 }
 
 
+function formatScoreOutOf100(value) {
+    if (value === null || value === undefined || value === "") return "—";
+
+    const number = Number(value);
+    if (Number.isNaN(number)) return safe(value);
+
+    return `${Math.round(number)} / 100`;
+}
+
+function getDriverQualityLabel(value) {
+    const number = Number(value);
+    if (Number.isNaN(number)) return "Confirmation unavailable";
+
+    if (number >= 80) return "Strong driver confirmation";
+    if (number >= 65) return "Moderate confirmation";
+    if (number >= 50) return "Mixed confirmation";
+    if (number >= 35) return "Weak confirmation";
+    return "Driver conflict";
+}
+
+function getDriverQualityTextClass(value) {
+    const number = Number(value);
+    if (Number.isNaN(number)) return "blue";
+
+    if (number >= 80) return "green";
+    if (number >= 65) return "blue";
+    if (number >= 50) return "yellow";
+    return "red";
+}
+
 function formatCurrency(value) {
+    if (value === null || value === undefined || value === "") return "$—";
+
     const number = Number(value);
     if (Number.isNaN(number)) return "$—";
-    return `$${number.toFixed(2)}`;
+
+    const absoluteValue = Math.abs(number).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
+    return number < 0 ? `-$${absoluteValue}` : `$${absoluteValue}`;
 }
 
 function formatCurrencyOrDash(value) {
