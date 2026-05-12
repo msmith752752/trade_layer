@@ -43,6 +43,11 @@ from app.options_strategy_engine import (
     choose_trade_expression,
 )
 
+from app.covered_call_position_engine import (
+    calculate_covered_call_position,
+    get_sample_pltr_covered_call,
+)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -949,6 +954,55 @@ def trade_recommendations(account_value: float = SMALL_ACCOUNT_VALUE):
         "risk_note": "Small-account mode is active. Recommendations should favor defined risk, small size, and capital preservation.",
         "timestamp": datetime.now().isoformat(),
     }
+
+
+@app.get("/covered-call-position")
+def covered_call_position(
+    symbol: str = "PLTR",
+    shares: int = 100,
+    stock_cost_basis: float = 135.45,
+    call_strike: float = 142.00,
+    call_premium: float = 5.10,
+    expiration: str = "2026-06-12",
+    current_stock_price: Optional[float] = None,
+    current_call_price: Optional[float] = None,
+    account: str = "Schwab Brokerage",
+):
+    """
+    Evaluates a covered call position such as the current PLTR setup.
+
+    This endpoint is for position intelligence only.
+    It does not place trades.
+    """
+
+    if current_stock_price is None:
+        try:
+            current_stock_price = get_current_price(symbol.upper())
+        except Exception as e:
+            print(f"ERROR FETCHING CURRENT PRICE FOR COVERED CALL {symbol}:", e)
+            current_stock_price = None
+
+    return calculate_covered_call_position(
+        symbol=symbol,
+        shares=shares,
+        stock_cost_basis=stock_cost_basis,
+        call_strike=call_strike,
+        call_premium=call_premium,
+        expiration=expiration,
+        current_stock_price=current_stock_price,
+        current_call_price=current_call_price,
+        account=account,
+    )
+
+
+@app.get("/sample-pltr-covered-call")
+def sample_pltr_covered_call():
+    """
+    Returns the current manual PLTR covered call test case.
+    Useful for validating the covered call position engine.
+    """
+
+    return get_sample_pltr_covered_call()
 
 
 @app.post("/log-trade")
