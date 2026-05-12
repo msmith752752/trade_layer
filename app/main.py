@@ -38,6 +38,11 @@ from app.market_driver_engine import (
     build_market_driver_impact,
 )
 
+from app.options_strategy_engine import (
+    SMALL_ACCOUNT_VALUE,
+    choose_trade_expression,
+)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -700,6 +705,84 @@ def build_daily_market_briefing(scan_data: dict = None) -> dict:
     }
 
 
+def normalize_conviction_score(raw_score) -> int:
+    """
+    Converts TradeLayer scanner scores into a 0-100 conviction score.
+    Supports both older small-scale scores and future 0-100 scores.
+    """
+
+    score = safe_float(raw_score, 0)
+
+    if score <= 10:
+        score = score * 10
+
+    return int(max(0, min(100, round(score))))
+
+
+def infer_directional_bias(signal: dict) -> str:
+    """
+    Infers directional bias from the existing equity scanner output.
+    Current scanner is mainly long-equity oriented, so bearish outputs remain conservative.
+    """
+
+    signal_type = str(signal.get("signal_type", "")).lower()
+    action_label = str(signal.get("action_label", "")).lower()
+
+    if signal_type in ["strong_long", "long"]:
+        return "bullish"
+
+    if "short" in signal_type or "bear" in signal_type or "put" in action_label:
+        return "bearish"
+
+    return "unclear"
+
+
+def map_market_environment_for_options(briefing: dict) -> str:
+    """
+    Converts the broader market briefing into the simpler labels expected by
+    the options strategy engine.
+    """
+
+    if not briefing:
+        return "neutral"
+
+    risk_appetite = str(briefing.get("risk_appetite", "")).upper()
+    market_regime = str(briefing.get("market_regime", "")).upper()
+
+    if "LOW" in risk_appetite or "RISK-OFF" in market_regime or "DEFENSIVE" in market_regime:
+        return "defensive"
+
+    if "SUPPORTIVE" in risk_appetite or "RISK-ON" in market_regime:
+        return "supportive"
+
+    if "CAUTIOUS" in risk_appetite:
+        return "weak"
+
+    return "neutral"
+
+
+def map_volatility_environment_for_options(briefing: dict) -> str:
+    """
+    Converts VIX/volatility classifications into the labels expected by
+    the options strategy engine.
+    """
+
+    if not briefing:
+        return "stable"
+
+    volatility = briefing.get("volatility", {}) or {}
+    volatility_state = str(volatility.get("volatility_state", "")).upper()
+
+    if volatility_state in ["STRESS", "ELEVATED"]:
+        return "elevated"
+
+    if volatility_state in ["NORMAL", "COMPRESSION"]:
+        return "stable"
+
+    return "neutral"
+
+
+
 @app.get("/")
 def root():
     return {"message": "TradeLayer API is running"}
@@ -762,6 +845,109 @@ def trade_scan():
         "avoid": avoid,
         "failed_symbols": failed_symbols,
         "scanned": len(symbols),
+    }
+
+
+@app.get("/trade-recommendations")
+def trade_recommendations(account_value: float = SMALL_ACCOUNT_VALUE):
+    """
+    Builds a TradeLayer recommendation package that connects:
+    - scanner output
+    - market environment
+    - volatility posture
+    - small-account risk rules
+    - options-vs-shares expression logic
+
+    This endpoint recommends ideas only. It does not place trades.
+    """
+
+    try:
+        scan_data = trade_scan()
+    except Exception as e:
+        print("ERROR BUILDING TRADE RECOMMENDATION SCAN DATA:", e)
+        scan_data = {
+            "top_trade": None,
+            "trade_opportunities": [],
+            "watchlist": [],
+            "avoid": [],
+            "failed_symbols": [],
+        }
+
+    try:
+        briefing_data = build_daily_market_briefing(scan_data=scan_data)
+    except Exception as e:
+        print("ERROR BUILDING TRADE RECOMMENDATION MARKET BRIEFING:", e)
+        briefing_data = None
+
+    top_trade = scan_data.get("top_trade") if scan_data else None
+
+    if not top_trade:
+        return {
+            "status": "ok",
+            "recommendation_type": "NO_TRADE",
+            "summary": "No high-quality trade candidate was found by the scanner.",
+            "account_value": round(account_value, 2),
+            "preferred_action": "Stay patient and preserve capital.",
+            "options_recommendation": choose_trade_expression(
+                symbol="CASH",
+                directional_bias="unclear",
+                conviction_score=0,
+                market_environment=map_market_environment_for_options(briefing_data),
+                volatility_environment=map_volatility_environment_for_options(briefing_data),
+                capital_efficiency_needed=True,
+                account_value=account_value,
+            ),
+            "market_context": {
+                "market_regime": briefing_data.get("market_regime") if briefing_data else None,
+                "risk_appetite": briefing_data.get("risk_appetite") if briefing_data else None,
+                "risk_score": briefing_data.get("risk_score") if briefing_data else None,
+            },
+            "scan_context": scan_data,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    symbol = top_trade.get("symbol", "UNKNOWN")
+    directional_bias = infer_directional_bias(top_trade)
+    conviction_score = normalize_conviction_score(top_trade.get("score", 0))
+    market_environment = map_market_environment_for_options(briefing_data)
+    volatility_environment = map_volatility_environment_for_options(briefing_data)
+
+    options_recommendation = choose_trade_expression(
+        symbol=symbol,
+        directional_bias=directional_bias,
+        conviction_score=conviction_score,
+        market_environment=market_environment,
+        volatility_environment=volatility_environment,
+        capital_efficiency_needed=True,
+        account_value=account_value,
+        scanner_recommended_strategy=top_trade.get("recommended_strategy") or top_trade.get("strategy"),
+        strategy_family=top_trade.get("strategy_family"),
+        options_pressure=top_trade.get("options_pressure"),
+        overextended=top_trade.get("overextended", False),
+    )
+
+    summary = (
+        f"TradeLayer's top candidate is {symbol}. "
+        f"The current preferred expression is {options_recommendation.get('preferred_expression')}. "
+        f"This is a recommendation only and should be manually reviewed before any trade is placed."
+    )
+
+    return {
+        "status": "ok",
+        "recommendation_type": "TRADE_CANDIDATE",
+        "summary": summary,
+        "account_value": round(account_value, 2),
+        "top_trade": top_trade,
+        "options_recommendation": options_recommendation,
+        "market_context": {
+            "market_regime": briefing_data.get("market_regime") if briefing_data else None,
+            "risk_appetite": briefing_data.get("risk_appetite") if briefing_data else None,
+            "risk_score": briefing_data.get("risk_score") if briefing_data else None,
+            "market_environment_used": market_environment,
+            "volatility_environment_used": volatility_environment,
+        },
+        "risk_note": "Small-account mode is active. Recommendations should favor defined risk, small size, and capital preservation.",
+        "timestamp": datetime.now().isoformat(),
     }
 
 
