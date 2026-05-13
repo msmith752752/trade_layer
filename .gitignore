@@ -10,3 +10,6 @@ portfolio_data.json
 *.local.jsonportfolio_snapshot.json
 trade_journal.json
 tradelayer_files_for_update.zip
+portfolio_snapshot.json
+data/
+python

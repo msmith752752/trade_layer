@@ -226,3 +226,16 @@ function getRecommendationDriverClass(decision) {
     if (value === "DRIVER CONFLICT") return "red";
     return "blue";
 }
+
+
+function formatSignedValue(value) {
+    if (value === null || value === undefined || value === "") return "—";
+
+    const number = Number(value);
+
+    if (Number.isNaN(number)) return safe(value);
+
+    const sign = number > 0 ? "+" : "";
+
+    return `${sign}${number.toFixed(2)}`;
+}

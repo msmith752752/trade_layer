@@ -52,6 +52,14 @@ from app.options_contract_selector import (
     build_options_contract_candidates,
 )
 
+from app.options_engine import (
+    get_options_quality,
+)
+
+from app.signal_journal_engine import (
+    build_signal_journal_report,
+)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -417,15 +425,23 @@ def get_index_snapshot(symbol: str) -> dict:
 
     daily_change_percent = (
         data.get("daily_change_percent")
+        or data.get("daily_change_pct")
         or data.get("change_percent")
         or data.get("percent_change")
         or data.get("day_change_percent")
+    )
+
+    daily_change = (
+        data.get("daily_change")
+        or data.get("change")
+        or data.get("day_change")
     )
 
     return {
         "symbol": symbol,
         "status": "ok",
         "price": round(safe_float(price), 2) if price is not None else None,
+        "daily_change": round(safe_float(daily_change), 2) if daily_change is not None else None,
         "daily_change_percent": round(safe_float(daily_change_percent), 2) if daily_change_percent is not None else None,
         "market_state": market_state.get("market_state"),
         "environment_score": market_state.get("environment_score"),
@@ -1025,6 +1041,28 @@ def options_intelligence(
         directional_bias=selected_bias,
     )
 
+    try:
+        options_quality = get_options_quality(
+            symbol=selected_symbol,
+            current_price=selected_price,
+            directional_bias=selected_bias,
+        )
+    except Exception as e:
+        print("ERROR BUILDING OPTIONS QUALITY DATA:", e)
+        options_quality = {
+            "has_options_quality_data": False,
+            "options_confidence": 0,
+            "quality_label": "Unavailable",
+            "actionability": "Unavailable",
+            "summary": "Options quality data unavailable.",
+            "avoid_reasons": ["Options quality data unavailable."],
+            "structure_bias": {
+                "preferred_structure": "NO TRADE",
+                "structure_quality": "Unavailable",
+                "reason": "Options quality data unavailable.",
+            },
+        }
+
     return {
         "status": "ok",
         "symbol": selected_symbol,
@@ -1037,6 +1075,15 @@ def options_intelligence(
             "risk_appetite": briefing_data.get("risk_appetite") if briefing_data else None,
             "risk_score": briefing_data.get("risk_score") if briefing_data else None,
             "recommended_posture": briefing_data.get("recommended_posture") if briefing_data else None,
+        },
+        "options_quality": options_quality,
+        "structure_quality": options_quality.get("structure_bias", {}),
+        "execution_quality": {
+            "options_confidence": options_quality.get("options_confidence"),
+            "quality_label": options_quality.get("quality_label"),
+            "actionability": options_quality.get("actionability"),
+            "summary": options_quality.get("summary"),
+            "avoid_reasons": options_quality.get("avoid_reasons", []),
         },
         "accounts": {
             "individual_556": individual_556,
@@ -1230,6 +1277,34 @@ def get_performance():
         "total_realized_pl": round(total_pl, 2),
         "avg_pl": round(avg_pl, 2),
     }
+
+
+@app.get("/signal-journal")
+def signal_journal():
+    """
+    Captures the current top TradeLayer signal and evaluates previous journal entries.
+
+    This is a forward-test journal, not a finalized backtest engine.
+    It records what TradeLayer recommended and later checks how those signals performed.
+    """
+
+    try:
+        scan_data = trade_scan()
+    except Exception as e:
+        print("ERROR BUILDING SIGNAL JOURNAL SCAN DATA:", e)
+        scan_data = None
+
+    try:
+        briefing_data = build_daily_market_briefing(scan_data=scan_data)
+    except Exception as e:
+        print("ERROR BUILDING SIGNAL JOURNAL MARKET BRIEFING:", e)
+        briefing_data = None
+
+    return build_signal_journal_report(
+        scan_data=scan_data,
+        briefing=briefing_data,
+        auto_capture=True,
+    )
 
 
 @app.get("/risk-levels")
