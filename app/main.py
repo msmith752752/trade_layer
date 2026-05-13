@@ -48,6 +48,10 @@ from app.covered_call_position_engine import (
     get_sample_pltr_covered_call,
 )
 
+from app.options_contract_selector import (
+    build_options_contract_candidates,
+)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -955,6 +959,95 @@ def trade_recommendations(account_value: float = SMALL_ACCOUNT_VALUE):
         "timestamp": datetime.now().isoformat(),
     }
 
+
+
+@app.get("/options-intelligence")
+def options_intelligence(
+    symbol: Optional[str] = None,
+    current_price: Optional[float] = None,
+    directional_bias: Optional[str] = None,
+):
+    """
+    Returns account-aware options contract candidates for TradeLayer.
+
+    This endpoint does not place trades. It evaluates possible options
+    structures against small-account survivability rules.
+    Schwab live option-chain data can replace placeholder pricing later.
+    """
+
+    try:
+        scan_data = trade_scan()
+    except Exception as e:
+        print("ERROR BUILDING OPTIONS INTELLIGENCE SCAN DATA:", e)
+        scan_data = {
+            "top_trade": None,
+            "trade_opportunities": [],
+            "watchlist": [],
+            "avoid": [],
+            "failed_symbols": [],
+        }
+
+    try:
+        briefing_data = build_daily_market_briefing(scan_data=scan_data)
+    except Exception as e:
+        print("ERROR BUILDING OPTIONS INTELLIGENCE MARKET BRIEFING:", e)
+        briefing_data = None
+
+    top_trade = scan_data.get("top_trade") if scan_data else None
+
+    if top_trade:
+        selected_symbol = symbol or top_trade.get("symbol", "CSCO")
+        selected_price = current_price or safe_float(top_trade.get("entry"), 98.72)
+        selected_bias = directional_bias or infer_directional_bias(top_trade)
+        setup_source = "top_trade"
+        setup_context = top_trade
+    else:
+        watchlist = scan_data.get("watchlist", []) if scan_data else []
+        fallback = watchlist[0] if watchlist else None
+
+        selected_symbol = symbol or (fallback.get("symbol") if fallback else "CSCO")
+        selected_price = current_price or safe_float(fallback.get("entry") if fallback else 98.72, 98.72)
+        selected_bias = directional_bias or (infer_directional_bias(fallback) if fallback else "bullish")
+        setup_source = "watchlist_fallback" if fallback else "manual_default"
+        setup_context = fallback
+
+    individual_556 = build_options_contract_candidates(
+        symbol=selected_symbol,
+        current_price=selected_price,
+        account_size=237.00,
+        directional_bias=selected_bias,
+    )
+
+    roth_account = build_options_contract_candidates(
+        symbol=selected_symbol,
+        current_price=selected_price,
+        account_size=859.00,
+        directional_bias=selected_bias,
+    )
+
+    return {
+        "status": "ok",
+        "symbol": selected_symbol,
+        "current_price": round(selected_price, 2),
+        "directional_bias": selected_bias,
+        "setup_source": setup_source,
+        "setup_context": setup_context,
+        "market_context": {
+            "market_regime": briefing_data.get("market_regime") if briefing_data else None,
+            "risk_appetite": briefing_data.get("risk_appetite") if briefing_data else None,
+            "risk_score": briefing_data.get("risk_score") if briefing_data else None,
+            "recommended_posture": briefing_data.get("recommended_posture") if briefing_data else None,
+        },
+        "accounts": {
+            "individual_556": individual_556,
+            "roth_account": roth_account,
+        },
+        "risk_note": (
+            "Options intelligence is account-aware. A bullish or bearish setup "
+            "can still be rejected if max risk is too large for the account."
+        ),
+        "timestamp": datetime.now().isoformat(),
+    }
 
 @app.get("/covered-call-position")
 def covered_call_position(
