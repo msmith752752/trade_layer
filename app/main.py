@@ -478,6 +478,7 @@ def build_market_status_strip() -> dict:
             "label": config["label"],
             "status": snapshot.get("status"),
             "price": snapshot.get("price"),
+            "daily_change": snapshot.get("daily_change"),
             "change_percent": snapshot.get("daily_change_percent"),
             "market_state": snapshot.get("market_state"),
             "environment_score": snapshot.get("environment_score"),
@@ -496,6 +497,174 @@ def build_market_status_strip() -> dict:
         "timestamp": datetime.now(ZoneInfo("America/New_York")).isoformat(),
         "summary": summary,
         "items": items,
+    }
+
+
+def _average_available(values: list, default: float = 0.0) -> float:
+    clean_values = []
+
+    for value in values:
+        parsed = safe_float(value, None)
+        if parsed is not None:
+            clean_values.append(parsed)
+
+    if not clean_values:
+        return default
+
+    return sum(clean_values) / len(clean_values)
+
+
+def build_pre_market_command_center() -> dict:
+    """
+    Builds a concise pre-market operating command center.
+
+    Purpose:
+    TradeLayer already has market status, volatility, trade recommendations,
+    options intelligence, and portfolio guidance. This function converts that
+    context into one decision layer: whether to add risk, wait, or only manage
+    existing positions.
+    """
+
+    market_status = build_market_status_strip()
+    market_items = market_status.get("items", [])
+
+    try:
+        briefing = build_daily_market_briefing()
+    except Exception as e:
+        print("ERROR BUILDING PRE-MARKET BRIEFING:", e)
+        briefing = {}
+
+    futures_items = [
+        item for item in market_items
+        if str(item.get("symbol", "")).upper() in ["ES=F", "NQ=F", "YM=F", "RTY=F"]
+    ]
+
+    equity_index_items = [
+        item for item in market_items
+        if str(item.get("symbol", "")).upper() in ["SPY", "QQQ", "DIA", "IWM"]
+    ]
+
+    risk_items = futures_items if futures_items else equity_index_items
+    average_change_percent = _average_available(
+        [item.get("change_percent") for item in risk_items],
+        default=0.0,
+    )
+
+    positive_count = len([
+        item for item in risk_items
+        if safe_float(item.get("change_percent"), 0) > 0.05
+    ])
+    negative_count = len([
+        item for item in risk_items
+        if safe_float(item.get("change_percent"), 0) < -0.05
+    ])
+
+    if average_change_percent >= 0.35 and positive_count >= max(1, len(risk_items) // 2):
+        futures_tone = "BULLISH"
+        futures_tone_label = "Futures are supportive"
+        futures_score = 75
+    elif average_change_percent <= -0.35 and negative_count >= max(1, len(risk_items) // 2):
+        futures_tone = "BEARISH"
+        futures_tone_label = "Futures are weak"
+        futures_score = 25
+    elif average_change_percent > 0.05:
+        futures_tone = "MILDLY POSITIVE"
+        futures_tone_label = "Futures are slightly positive"
+        futures_score = 60
+    elif average_change_percent < -0.05:
+        futures_tone = "MILDLY NEGATIVE"
+        futures_tone_label = "Futures are slightly negative"
+        futures_score = 40
+    else:
+        futures_tone = "FLAT"
+        futures_tone_label = "Futures are flat"
+        futures_score = 50
+
+    volatility = briefing.get("volatility", {}) or {}
+    breadth = briefing.get("breadth", {}) or {}
+    market_regime = briefing.get("market_regime", "UNKNOWN")
+    risk_appetite = briefing.get("risk_appetite", "UNKNOWN")
+    risk_score = safe_float(briefing.get("risk_score"), 50)
+    volatility_state = volatility.get("volatility_state", "UNKNOWN")
+    volatility_label = volatility.get("volatility_label", "Volatility unavailable")
+    breadth_state = breadth.get("breadth_state", "UNKNOWN")
+
+    command_score = 50
+    command_score += (futures_score - 50) * 0.35
+    command_score += (risk_score - 50) * 0.45
+    command_score += (safe_float(volatility.get("volatility_score"), 50) - 50) * 0.20
+    command_score = max(0, min(100, round(command_score, 2)))
+
+    if volatility_state in ["STRESS", "ELEVATED"] and futures_tone in ["BEARISH", "MILDLY NEGATIVE"]:
+        market_bias = "DEFENSIVE"
+        new_trade_permission = "AVOID"
+        today_action = "MANAGE POSITIONS ONLY"
+        command_label = "Protect capital"
+    elif command_score >= 68 and futures_tone in ["BULLISH", "MILDLY POSITIVE"] and risk_appetite in ["SUPPORTIVE", "NEUTRAL"]:
+        market_bias = "SUPPORTIVE"
+        new_trade_permission = "ALLOWED"
+        today_action = "TRADE SELECTIVELY"
+        command_label = "Risk-on but still selective"
+    elif command_score <= 38 or risk_appetite in ["LOW", "CAUTIOUS"]:
+        market_bias = "DEFENSIVE"
+        new_trade_permission = "AVOID"
+        today_action = "WATCH / MANAGE ONLY"
+        command_label = "Low-conviction environment"
+    else:
+        market_bias = "MIXED"
+        new_trade_permission = "SELECTIVE"
+        today_action = "WAIT FOR CONFIRMATION"
+        command_label = "Selective confirmation required"
+
+    summary = (
+        f"Pre-market command is {new_trade_permission.lower()}. "
+        f"{futures_tone_label}, while the broader market regime is {market_regime.lower()} "
+        f"with {volatility_label.lower()}. "
+        f"Primary action: {today_action.lower()}."
+    )
+
+    directives = []
+
+    if new_trade_permission == "ALLOWED":
+        directives.extend([
+            "New trades are permitted only if the setup also passes options quality and risk sizing checks.",
+            "Favor defined-risk structures or small share size until the cash session confirms the pre-market tone.",
+            "Avoid chasing gaps above the planned entry zone.",
+        ])
+    elif new_trade_permission == "SELECTIVE":
+        directives.extend([
+            "Do not force a new trade at the open; wait for confirmation after the first volatility window.",
+            "Use TradeLayer top ideas as a watchlist, not automatic entries.",
+            "Prioritize position management and only add risk if market drivers improve.",
+        ])
+    else:
+        directives.extend([
+            "Avoid new directional risk until volatility and futures improve.",
+            "Focus on stop discipline, trimming weak positions, and protecting capital.",
+            "Defined-risk or covered-call maintenance may be considered only if position-level logic supports it.",
+        ])
+
+    return {
+        "status": "ok",
+        "generated_at": datetime.now(ZoneInfo("America/New_York")).isoformat(),
+        "market_session": market_status.get("market_session"),
+        "display_mode": market_status.get("display_mode"),
+        "command_score": command_score,
+        "command_label": command_label,
+        "market_bias": market_bias,
+        "futures_tone": futures_tone,
+        "futures_tone_label": futures_tone_label,
+        "average_futures_change_percent": round(average_change_percent, 2),
+        "volatility_state": volatility_state,
+        "volatility_label": volatility_label,
+        "breadth_state": breadth_state,
+        "risk_appetite": risk_appetite,
+        "market_regime": market_regime,
+        "new_trade_permission": new_trade_permission,
+        "today_action": today_action,
+        "summary": summary,
+        "directives": directives,
+        "market_items": market_items,
     }
 
 def classify_volatility_state(vix_snapshot: dict) -> dict:
@@ -806,6 +975,11 @@ def map_volatility_environment_for_options(briefing: dict) -> str:
 
     return "neutral"
 
+
+
+@app.get("/pre-market-command-center")
+def pre_market_command_center():
+    return build_pre_market_command_center()
 
 
 @app.get("/")
