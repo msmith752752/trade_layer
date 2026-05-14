@@ -1120,3 +1120,63 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+.performance-scorecard-card {
+    margin-bottom: 22px;
+    border-color: rgba(34,197,94,0.32);
+    background: linear-gradient(135deg, rgba(16,28,24,0.98), rgba(8,14,22,0.98));
+}
+
+.performance-scorecard-hero {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.performance-status-panel {
+    background: linear-gradient(135deg, rgba(34,197,94,0.14), rgba(15,21,35,0.94));
+    border: 1px solid rgba(34,197,94,0.24);
+    border-radius: 18px;
+    padding: 20px;
+}
+
+.performance-status-value {
+    font-size: 34px;
+    font-weight: bold;
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+}
+
+.performance-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.performance-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.performance-detail-card {
+    background: var(--card-soft);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+}
+
+@media (max-width: 1000px) {
+    .performance-scorecard-hero,
+    .performance-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .performance-metric-grid {
+        grid-template-columns: 1fr;
+    }
+}

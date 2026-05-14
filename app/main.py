@@ -60,6 +60,10 @@ from app.signal_journal_engine import (
     build_signal_journal_report,
 )
 
+from app.performance_engine import (
+    build_performance_report,
+)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -1413,44 +1417,15 @@ def get_portfolio():
 
 @app.get("/performance")
 def get_performance():
+    """
+    Returns realized trade performance plus TradeLayer signal-journal analytics.
+
+    The heavy calculation logic lives in app/performance_engine.py so main.py
+    remains focused on API routing.
+    """
+
     trades = read_trade_log()
-
-    total_trades = len(trades)
-    open_trades = 0
-    closed_trades = 0
-    wins = 0
-    losses = 0
-    total_pl = 0
-
-    for t in trades:
-        if t.get("status") == "open":
-            open_trades += 1
-            continue
-
-        if t.get("status") == "closed":
-            closed_trades += 1
-            closed_trade = enrich_closed_trade(t)
-            pl = closed_trade.get("realized_pl", 0)
-            total_pl += pl
-
-            if pl > 0:
-                wins += 1
-
-            elif pl < 0:
-                losses += 1
-
-    avg_pl = total_pl / closed_trades if closed_trades > 0 else 0
-
-    return {
-        "total_trades": total_trades,
-        "open_trades": open_trades,
-        "closed_trades": closed_trades,
-        "wins": wins,
-        "losses": losses,
-        "total_pl": round(total_pl, 2),
-        "total_realized_pl": round(total_pl, 2),
-        "avg_pl": round(avg_pl, 2),
-    }
+    return build_performance_report(trades=trades)
 
 
 @app.get("/signal-journal")
