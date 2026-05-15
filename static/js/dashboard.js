@@ -6,88 +6,105 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
     const topTradeSection = top ? renderTopTradeAndRiskSection(top) : renderNoTradeWorkstationSection(scanData, tradeRecommendationData);
 
     document.getElementById("dashboard").innerHTML = `
-        ${renderMarketStatusStrip(marketStatusData)}
-
-        ${renderPreMarketCommandShell()}
-
-        ${renderTradeRecommendationCard(tradeRecommendationData)}
-
-        ${topTradeSection}
-
-        ${top ? renderOptionsIntelligenceShell() : ""}
-
-        ${renderSignalJournalShell()}
-
-        ${renderPerformanceScorecardShell()}
-
-        ${renderMarketDriverImpact(marketDriverData)}
-
-        ${renderDailyActionPlan(dailyActionData)}
-
-        ${renderCapitalAllocationGuidance(capitalAllocationData)}
-
-        <div class="card top-opportunities">
-            <div class="section-title">Top Opportunities</div>
-            <div class="section-subtitle">
-                Highest-ranked setups after trend, momentum, liquidity, options pressure, regime, and RS vs SPY filters.
-            </div>
-
-            <div class="opportunity-grid">
-                ${renderOpportunityCards(scanData?.trade_opportunities || [])}
-            </div>
+        <div class="workspace-command-zone">
+            ${renderMarketStatusStrip(marketStatusData)}
+            ${renderPreMarketCommandShell()}
         </div>
 
-        ${renderPortfolioAnalysis(portfolioAnalysisData)}
-
-        <div class="positions-grid">
-            <div class="card">
-                <div class="section-title">Open Positions</div>
-                <div class="section-subtitle">
-                    Live unrealized P/L calculated from current market price, share count, and cost basis.
-                </div>
-                ${renderOpenPositions(tradeLogData, portfolioData, portfolioAnalysisData)}
+        <div class="workspace-tabs-shell">
+            <div class="workspace-tabs-header">
+                <button class="workspace-tab-button active" data-workspace-tab="opportunities">Opportunities</button>
+                <button class="workspace-tab-button" data-workspace-tab="portfolio">Portfolio</button>
+                <button class="workspace-tab-button" data-workspace-tab="performance">Performance</button>
+                <button class="workspace-tab-button" data-workspace-tab="market-drivers">Market Drivers</button>
             </div>
 
-            <div class="card">
-                <div class="section-title">Closed Trades</div>
-                <div class="section-subtitle">
-                    Completed trades and realized P/L summary.
+            <div class="workspace-tab-panel active" data-workspace-panel="opportunities">
+                ${renderTradeRecommendationCard(tradeRecommendationData)}
+
+                ${topTradeSection}
+
+                ${top ? renderOptionsIntelligenceShell() : ""}
+
+                <div class="card top-opportunities">
+                    <div class="section-title">Top Opportunities</div>
+                    <div class="section-subtitle">
+                        Highest-ranked setups after trend, momentum, liquidity, options pressure, regime, and RS vs SPY filters.
+                    </div>
+
+                    <div class="opportunity-grid">
+                        ${renderOpportunityCards(scanData?.trade_opportunities || [])}
+                    </div>
                 </div>
-                ${renderClosedTrades(tradeLogData, performanceData)}
+
+                <div class="bottom-grid">
+                    <div class="card">
+                        <div class="section-title">Watchlist</div>
+                        <div class="section-subtitle">
+                            Names with potential, but not yet strong enough for top-trade status.
+                        </div>
+
+                        <div class="list">
+                            ${renderRows(scanData?.watchlist || [])}
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="section-title">Avoid / Weak Environment</div>
+                        <div class="section-subtitle">
+                            Strong names can still be poor trades if the environment is unstable or overextended.
+                        </div>
+
+                        <div class="list">
+                            ${renderRows(scanData?.avoid || [])}
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="bottom-grid">
-            <div class="card">
-                <div class="section-title">Watchlist</div>
-                <div class="section-subtitle">
-                    Names with potential, but not yet strong enough for top-trade status.
-                </div>
+            <div class="workspace-tab-panel" data-workspace-panel="portfolio">
+                ${renderDailyActionPlan(dailyActionData)}
 
-                <div class="list">
-                    ${renderRows(scanData?.watchlist || [])}
+                ${renderCapitalAllocationGuidance(capitalAllocationData)}
+
+                ${renderPortfolioAnalysis(portfolioAnalysisData)}
+
+                <div class="positions-grid">
+                    <div class="card">
+                        <div class="section-title">Open Positions</div>
+                        <div class="section-subtitle">
+                            Live unrealized P/L calculated from current market price, share count, and cost basis.
+                        </div>
+                        ${renderOpenPositions(tradeLogData, portfolioData, portfolioAnalysisData)}
+                    </div>
+
+                    <div class="card">
+                        <div class="section-title">Closed Trades</div>
+                        <div class="section-subtitle">
+                            Completed trades and realized P/L summary.
+                        </div>
+                        ${renderClosedTrades(tradeLogData, performanceData)}
+                    </div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="section-title">Avoid / Weak Environment</div>
-                <div class="section-subtitle">
-                    Strong names can still be poor trades if the environment is unstable or overextended.
-                </div>
+            <div class="workspace-tab-panel" data-workspace-panel="performance">
+                ${renderPerformanceScorecardShell()}
+                ${renderSignalJournalShell()}
+            </div>
 
-                <div class="list">
-                    ${renderRows(scanData?.avoid || [])}
-                </div>
+            <div class="workspace-tab-panel" data-workspace-panel="market-drivers">
+                ${renderMarketDriverImpact(marketDriverData)}
             </div>
         </div>
     `;
 
+    initializeWorkspaceTabs();
     loadPreMarketCommandCenter();
     loadOptionsIntelligencePanel();
     loadSignalJournalPanel();
     loadPerformanceScorecardPanel();
 }
-
 
 
 

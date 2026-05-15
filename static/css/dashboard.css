@@ -1180,3 +1180,73 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Workspace Tabs V1 */
+
+.workspace-command-zone {
+    margin-bottom: 22px;
+}
+
+.workspace-tabs-shell {
+    margin-top: 8px;
+}
+
+.workspace-tabs-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: rgba(11,15,26,0.94);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 10px;
+    margin-bottom: 22px;
+    box-shadow: 0 16px 28px rgba(0,0,0,0.28);
+}
+
+.workspace-tab-button {
+    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--card-soft);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+
+.workspace-tab-button:hover {
+    color: var(--text);
+    border-color: rgba(59,130,246,0.38);
+}
+
+.workspace-tab-button.active {
+    color: #bfdbfe;
+    background: rgba(59,130,246,0.16);
+    border-color: rgba(59,130,246,0.46);
+    box-shadow: inset 0 0 0 1px rgba(59,130,246,0.14);
+}
+
+.workspace-tab-panel {
+    display: none;
+}
+
+.workspace-tab-panel.active {
+    display: block;
+}
+
+@media(max-width: 650px) {
+    .workspace-tabs-header {
+        position: static;
+    }
+
+    .workspace-tab-button {
+        flex: 1 1 calc(50% - 8px);
+        text-align: center;
+    }
+}
