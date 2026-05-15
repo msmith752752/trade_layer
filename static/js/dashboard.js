@@ -183,7 +183,7 @@ function renderTopTradeAndRiskSection(top) {
 
                 <button
                     class="risk-button"
-                    onclick="calculateRisk(${Number(top.entry)}, ${Number(top.stop_loss)}, '${safe(top.symbol)}')"
+                    onclick="calculateRisk(${Number(top.entry)}, ${Number(top.stop_loss)}, '${safe(top.symbol)}', ${Number(top.target)}, ${Number(top.score)})"
                 >
                     Calculate Position Size
                 </button>
@@ -512,15 +512,17 @@ function renderPositionActionCards(items) {
     `;
 }
 
-async function calculateRisk(entry, stop, symbol = "") {
+async function calculateRisk(entry, stop, symbol = "", target = null, tradeScore = null) {
     try {
         const accountValue = document.getElementById("accountValue").value;
         const riskPercent = document.getElementById("riskPercent").value;
 
         const symbolParam = symbol ? `&symbol=${encodeURIComponent(symbol)}` : "";
+        const targetParam = target ? `&target_price=${encodeURIComponent(target)}` : "";
+        const scoreParam = tradeScore ? `&trade_score=${encodeURIComponent(tradeScore)}` : "";
 
         const data = await fetchJson(
-            `${API_BASE}/risk-plan?account_value=${accountValue}&risk_percent=${riskPercent}&entry_price=${entry}&stop_price=${stop}${symbolParam}`
+            `${API_BASE}/risk-plan?account_value=${accountValue}&risk_percent=${riskPercent}&entry_price=${entry}&stop_price=${stop}${symbolParam}${targetParam}${scoreParam}&signal_sample_size=3&volatility_state=normal`
         );
 
         document.getElementById("riskResults").innerHTML = `
@@ -556,6 +558,8 @@ async function calculateRisk(entry, stop, symbol = "") {
                 </div>
             </div>
 
+            ${renderPositionSizingIntelligence(data.position_sizing_intelligence)}
+
             <div class="empty-state">
                 ${safe(data.risk_summary)}
                 ${data.warnings?.length ? `<br><br>${data.warnings.map(w => `• ${safe(w)}`).join("<br>")}` : ""}
@@ -570,6 +574,59 @@ async function calculateRisk(entry, stop, symbol = "") {
         `;
     }
 }
+
+function renderPositionSizingIntelligence(data) {
+    if (!data || data.status !== "ok") {
+        return "";
+    }
+
+    const sample = data.sample_confidence || {};
+    const volatility = data.volatility_filter || {};
+    const environment = data.environment_filter || {};
+
+    return `
+        <div class="position-sizing-box">
+            <div class="section-title">Position Sizing Intelligence</div>
+            <div class="section-subtitle">
+                Conservative fractional Kelly, sample-size, volatility, and environment filters.
+            </div>
+
+            <div class="metric-grid two">
+                <div class="mini-metric">
+                    <div class="label">Base Risk</div>
+                    <div class="value">${formatPercent(data.base_risk_percent)}</div>
+                </div>
+
+                <div class="mini-metric">
+                    <div class="label">Final Risk</div>
+                    <div class="value blue">${formatPercent(data.final_risk_percent)}</div>
+                </div>
+
+                <div class="mini-metric">
+                    <div class="label">Estimated Probability</div>
+                    <div class="value">${formatPercent(data.estimated_win_probability)}</div>
+                </div>
+
+                <div class="mini-metric">
+                    <div class="label">Fractional Kelly</div>
+                    <div class="value yellow">${formatPercent(data.fractional_kelly_percent)}</div>
+                </div>
+            </div>
+
+            <div class="badge-row">
+                <div class="badge blue-bg">${safe(sample.label)}</div>
+                <div class="badge">${safe(volatility.label)} volatility</div>
+                <div class="badge">${safe(environment.label)} environment</div>
+            </div>
+
+            <div class="empty-state">
+                ${safe(data.summary)}
+                ${data.warnings?.length ? `<br><br>${data.warnings.map(w => `• ${safe(w)}`).join("<br>")}` : ""}
+            </div>
+        </div>
+    `;
+}
+
 
 function renderOpportunityCards(items) {
     if (!items || items.length === 0) {

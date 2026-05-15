@@ -15,6 +15,8 @@ Size positions by how much damage the trade can cause if wrong.
 """
 
 
+from app.position_sizing_engine import build_position_sizing_intelligence
+
 def safe_float(value, default=0.0):
     try:
         if value is None:
@@ -97,6 +99,11 @@ def calculate_risk_plan(
     environment: str | None = None,
     volatility_buffer_percent: float = 0.0,
     max_exposure_percent: float = 50.0,
+    target_price: float | None = None,
+    trade_score: float | None = None,
+    signal_win_rate: float | None = None,
+    signal_sample_size: int = 0,
+    volatility_state: str | None = None,
 ):
     """
     Calculates risk-adjusted position sizing.
@@ -126,6 +133,7 @@ def calculate_risk_plan(
     stop_price = safe_float(stop_price)
     volatility_buffer_percent = safe_float(volatility_buffer_percent)
     max_exposure_percent = safe_float(max_exposure_percent, 50.0)
+    target_price = safe_float(target_price, None)
 
     if account_value <= 0:
         return {
@@ -212,6 +220,20 @@ def calculate_risk_plan(
         position_exposure_percent
     )
 
+    position_sizing_intelligence = build_position_sizing_intelligence(
+        account_value=account_value,
+        base_risk_percent=risk_percent,
+        entry_price=entry_price,
+        stop_price=stop_price,
+        target_price=target_price,
+        trade_score=trade_score,
+        signal_win_rate=signal_win_rate,
+        signal_sample_size=signal_sample_size,
+        market_environment=environment,
+        volatility_state=volatility_state,
+        max_risk_percent=risk_percent,
+    )
+
     warnings = []
 
     if risk_percent > 2:
@@ -276,6 +298,8 @@ def calculate_risk_plan(
         "environment_label": environment_result["label"],
         "environment_risk_multiplier": environment_result["risk_multiplier"],
         "environment_note": environment_result["note"],
+
+        "position_sizing_intelligence": position_sizing_intelligence,
 
         "warnings": warnings,
 

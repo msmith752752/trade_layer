@@ -1471,6 +1471,11 @@ def risk_plan(
     environment: Optional[str] = None,
     volatility_buffer_percent: float = 0.0,
     max_exposure_percent: float = 50.0,
+    target_price: Optional[float] = None,
+    trade_score: Optional[float] = None,
+    signal_win_rate: Optional[float] = None,
+    signal_sample_size: int = 0,
+    volatility_state: Optional[str] = None,
 ):
     market_context = None
     risk_environment = environment
@@ -1498,6 +1503,11 @@ def risk_plan(
         environment=risk_environment,
         volatility_buffer_percent=volatility_buffer_percent,
         max_exposure_percent=max_exposure_percent,
+        target_price=target_price,
+        trade_score=trade_score,
+        signal_win_rate=signal_win_rate,
+        signal_sample_size=signal_sample_size,
+        volatility_state=volatility_state,
     )
 
     if plan.get("status") == "ok":
