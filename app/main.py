@@ -1,6 +1,3 @@
-from dotenv import load_dotenv
-load_dotenv()
-
 print("LOADING THIS FILE:", __file__)
 
 import json
@@ -69,6 +66,11 @@ from app.performance_engine import (
 
 from app.ai_interpretation_engine import (
     build_ai_interpretation,
+)
+
+from app.backtest_engine import (
+    run_backtest,
+    DEFAULT_SYMBOLS,
 )
 
 app = FastAPI()
@@ -1777,3 +1779,51 @@ def ai_briefing():
     }
 
     return build_ai_interpretation(context)
+
+
+@app.get("/backtest")
+def backtest(
+    symbols: Optional[str] = None,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    min_score: int = 70,
+    max_hold_days: int = 10,
+    actionable_only: bool = True,
+):
+    """
+    Run a historical backtest of TradeLayer's scanner logic.
+
+    Parameters:
+    - symbols: comma-separated list e.g. "AAPL,NVDA,MSFT" (defaults to full universe)
+    - start: start date "YYYY-MM-DD" (defaults to 90 days ago)
+    - end: end date "YYYY-MM-DD" (defaults to yesterday)
+    - min_score: minimum technical score to include a signal (default 70)
+    - max_hold_days: days to hold before closing at market price (default 10)
+    - actionable_only: only include ACTIONABLE TODAY signals (default true)
+
+    Example: /backtest?symbols=AAPL,NVDA&start=2025-01-01&end=2025-03-31
+    """
+    et = ZoneInfo("America/New_York")
+    today = datetime.now(et).date()
+
+    # Default date range: last 90 days
+    default_end = (today - timedelta(days=1)).isoformat()
+    default_start = (today - timedelta(days=90)).isoformat()
+
+    symbol_list = (
+        [s.strip().upper() for s in symbols.split(",") if s.strip()]
+        if symbols
+        else DEFAULT_SYMBOLS
+    )
+
+    start_date = start or default_start
+    end_date = end or default_end
+
+    return run_backtest(
+        symbols=symbol_list,
+        start_date=start_date,
+        end_date=end_date,
+        min_score=min_score,
+        max_hold_days=max_hold_days,
+        actionable_only=actionable_only,
+    )
