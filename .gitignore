@@ -13,3 +13,5 @@ tradelayer_files_for_update.zip
 portfolio_snapshot.json
 data/
 python
+schwab_token.json
+schwab_auth.py

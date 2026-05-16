@@ -14,6 +14,7 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
         <div class="workspace-tabs-shell">
             <div class="workspace-tabs-header">
                 <button class="workspace-tab-button active" data-workspace-tab="opportunities">Opportunities</button>
+                <button class="workspace-tab-button" data-workspace-tab="ai-briefing">AI Briefing</button>
                 <button class="workspace-tab-button" data-workspace-tab="portfolio">Portfolio</button>
                 <button class="workspace-tab-button" data-workspace-tab="performance">Performance</button>
                 <button class="workspace-tab-button" data-workspace-tab="market-drivers">Market Drivers</button>
@@ -62,6 +63,10 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
                 </div>
             </div>
 
+            <div class="workspace-tab-panel" data-workspace-panel="ai-briefing">
+                ${renderAiBriefingShell()}
+            </div>
+
             <div class="workspace-tab-panel" data-workspace-panel="portfolio">
                 ${renderDailyActionPlan(dailyActionData)}
 
@@ -104,6 +109,7 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
     loadOptionsIntelligencePanel();
     loadSignalJournalPanel();
     loadPerformanceScorecardPanel();
+    loadAiBriefingPanel();
 }
 
 

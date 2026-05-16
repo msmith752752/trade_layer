@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 print("LOADING THIS FILE:", __file__)
 
 import json
@@ -62,6 +65,10 @@ from app.signal_journal_engine import (
 
 from app.performance_engine import (
     build_performance_report,
+)
+
+from app.ai_interpretation_engine import (
+    build_ai_interpretation,
 )
 
 app = FastAPI()
@@ -1713,3 +1720,60 @@ def portfolio_analysis():
         "combined_portfolio_value": round(total_value, 2),
         "portfolio_analyses": analyses,
     }
+
+@app.get("/ai-briefing")
+def ai_briefing():
+    """
+    Returns a plain-English AI interpretation of TradeLayer's current state.
+
+    The AI explains structured engine output. It does not place trades or
+    override risk controls.
+    """
+
+    try:
+        scan_data = trade_scan()
+    except Exception as e:
+        print("AI BRIEFING: trade_scan unavailable:", e)
+        scan_data = {}
+
+    try:
+        command_center = pre_market_command_center()
+    except Exception as e:
+        print("AI BRIEFING: command center unavailable:", e)
+        command_center = {}
+
+    try:
+        recommendation = trade_recommendations()
+    except Exception as e:
+        print("AI BRIEFING: trade recommendations unavailable:", e)
+        recommendation = {}
+
+    try:
+        performance = get_performance()
+    except Exception as e:
+        print("AI BRIEFING: performance unavailable:", e)
+        performance = {}
+
+    try:
+        journal = signal_journal()
+    except Exception as e:
+        print("AI BRIEFING: signal journal unavailable:", e)
+        journal = {}
+
+    try:
+        allocation = capital_allocation_guidance()
+    except Exception as e:
+        print("AI BRIEFING: allocation unavailable:", e)
+        allocation = {}
+
+    context = {
+        "top_trade": scan_data.get("top_trade") if isinstance(scan_data, dict) else {},
+        "trade_opportunities": (scan_data.get("trade_opportunities", [])[:3] if isinstance(scan_data, dict) else []),
+        "command_center": command_center,
+        "trade_recommendation": recommendation,
+        "performance": performance,
+        "signal_journal": journal,
+        "capital_allocation": allocation,
+    }
+
+    return build_ai_interpretation(context)
