@@ -13,7 +13,8 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
 
         <div class="workspace-tabs-shell">
             <div class="workspace-tabs-header">
-                <button class="workspace-tab-button active" data-workspace-tab="opportunities">Opportunities</button>
+                <button class="workspace-tab-button active" data-workspace-tab="morning-brief">Morning Brief</button>
+                <button class="workspace-tab-button" data-workspace-tab="opportunities">Opportunities</button>
                 <button class="workspace-tab-button" data-workspace-tab="ai-briefing">AI Briefing</button>
                 <button class="workspace-tab-button" data-workspace-tab="portfolio">Portfolio</button>
                 <button class="workspace-tab-button" data-workspace-tab="performance">Performance</button>
@@ -21,7 +22,11 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
                 <button class="workspace-tab-button" data-workspace-tab="themes">Themes</button>
             </div>
 
-            <div class="workspace-tab-panel active" data-workspace-panel="opportunities">
+            <div class="workspace-tab-panel active" data-workspace-panel="morning-brief">
+                <div id="morningBriefPanel"></div>
+            </div>
+
+            <div class="workspace-tab-panel" data-workspace-panel="opportunities">
                 ${renderTradeRecommendationCard(tradeRecommendationData)}
 
                 ${topTradeSection}
@@ -116,6 +121,7 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
     loadPerformanceScorecardPanel();
     loadAiBriefingPanel();
     loadThematicWatchlistPanel(scanData);
+    loadMorningBriefPanel(scanData, tradeRecommendationData);
 }
 
 

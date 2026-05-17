@@ -1402,3 +1402,138 @@
     gap: 6px;
     margin-top: 8px;
 }
+
+/* ─── Morning Brief ─────────────────────────────────────────────────────── */
+
+.morning-brief-card {
+    padding: 24px;
+}
+
+.morning-brief-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.morning-brief-date {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+
+.morning-brief-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.morning-brief-go {
+    font-size: 28px;
+    font-weight: 800;
+    padding: 10px 24px;
+    border-radius: 10px;
+    letter-spacing: 1px;
+}
+
+.morning-brief-go.go {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--green);
+    border: 1px solid var(--green);
+}
+
+.morning-brief-go.selective {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--blue);
+    border: 1px solid var(--blue);
+}
+
+.morning-brief-go.wait {
+    background: rgba(250, 204, 21, 0.15);
+    color: var(--yellow);
+    border: 1px solid var(--yellow);
+}
+
+.morning-brief-go-reason {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.morning-setup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.morning-setup-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.morning-setup-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.morning-setup-rank {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 2px;
+}
+
+.morning-setup-symbol {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.morning-setup-levels {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.morning-setup-ira {
+    background: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.morning-ira-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.morning-setup-why {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 10px;
+}
+
+.morning-setup-watch {
+    background: rgba(250, 204, 21, 0.05);
+    border: 1px solid rgba(250, 204, 21, 0.12);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.morning-brief-footer {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    color: var(--muted);
+}

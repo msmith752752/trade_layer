@@ -73,6 +73,33 @@ from app.backtest_engine import (
     DEFAULT_SYMBOLS,
 )
 
+# ─── Scan Cache ──────────────────────────────────────────────────────────────
+# Caches the trade scan result for CACHE_TTL_SECONDS to avoid re-fetching
+# Schwab data on every endpoint call. Dashboard loads instantly on repeat visits.
+
+import time as _time
+
+_scan_cache = {
+    "data": None,
+    "timestamp": 0,
+}
+
+CACHE_TTL_SECONDS = 300  # 5 minutes — refresh every 5 min
+
+
+def get_cached_scan():
+    """Returns cached scan data if fresh, otherwise runs a new scan."""
+    now = _time.time()
+    if _scan_cache["data"] is not None and (now - _scan_cache["timestamp"]) < CACHE_TTL_SECONDS:
+        return _scan_cache["data"]
+
+    # Run fresh scan and cache it
+    result = trade_scan()
+    _scan_cache["data"] = result
+    _scan_cache["timestamp"] = now
+    return result
+
+
 app = FastAPI()
 
 app.add_middleware(
@@ -1120,7 +1147,7 @@ def trade_recommendations(account_value: float = SMALL_ACCOUNT_VALUE):
     """
 
     try:
-        scan_data = trade_scan()
+        scan_data = get_cached_scan()
     except Exception as e:
         print("ERROR BUILDING TRADE RECOMMENDATION SCAN DATA:", e)
         scan_data = {
@@ -1225,7 +1252,7 @@ def options_intelligence(
     """
 
     try:
-        scan_data = trade_scan()
+        scan_data = get_cached_scan()
     except Exception as e:
         print("ERROR BUILDING OPTIONS INTELLIGENCE SCAN DATA:", e)
         scan_data = {
@@ -1493,7 +1520,7 @@ def signal_journal():
     """
 
     try:
-        scan_data = trade_scan()
+        scan_data = get_cached_scan()
     except Exception as e:
         print("ERROR BUILDING SIGNAL JOURNAL SCAN DATA:", e)
         scan_data = None
@@ -1576,7 +1603,7 @@ def risk_plan(
 @app.get("/daily-briefing")
 def daily_briefing():
     try:
-        scan_data = trade_scan()
+        scan_data = get_cached_scan()
     except Exception as e:
         print("ERROR BUILDING DAILY BRIEFING SCAN CONTEXT:", e)
         scan_data = None
@@ -1587,7 +1614,7 @@ def daily_briefing():
 @app.get("/daily-action-plan")
 def daily_action_plan():
     try:
-        scan_data = trade_scan()
+        scan_data = get_cached_scan()
     except Exception as e:
         print("ERROR BUILDING DAILY ACTION SCAN CONTEXT:", e)
         scan_data = None
@@ -1626,7 +1653,7 @@ def market_status_strip():
 @app.get("/market-driver-impact")
 def market_driver_impact():
     try:
-        scan_data = trade_scan()
+        scan_data = get_cached_scan()
     except Exception as e:
         print("ERROR BUILDING MARKET DRIVER SCAN CONTEXT:", e)
         scan_data = None
@@ -1671,7 +1698,7 @@ def market_driver_impact():
 @app.get("/capital-allocation-guidance")
 def capital_allocation_guidance():
     try:
-        scan_data = trade_scan()
+        scan_data = get_cached_scan()
     except Exception as e:
         print("ERROR BUILDING CAPITAL ALLOCATION SCAN CONTEXT:", e)
         scan_data = None
@@ -1779,7 +1806,7 @@ def ai_briefing():
     """
 
     try:
-        scan_data = trade_scan()
+        scan_data = get_cached_scan()
     except Exception as e:
         print("AI BRIEFING: trade_scan unavailable:", e)
         scan_data = {}
@@ -1825,6 +1852,15 @@ def ai_briefing():
     }
 
     return build_ai_interpretation(context)
+
+
+@app.get("/refresh-scan")
+def refresh_scan():
+    """Force a fresh trade scan, bypassing the cache."""
+    result = trade_scan()
+    _scan_cache["data"] = result
+    _scan_cache["timestamp"] = _time.time()
+    return {"status": "ok", "message": "Scan cache refreshed.", "scanned": result.get("scanned", 0)}
 
 
 @app.get("/backtest")
