@@ -1308,3 +1308,97 @@
         grid-template-columns: 1fr;
     }
 }
+/* TradeLayer Thematic Watchlist Styles */
+
+.thematic-watchlist-card {
+    padding: 20px;
+}
+
+.thematic-group {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.thematic-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.thematic-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.thematic-group-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+}
+
+.thematic-top-pick {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+.thematic-top-symbol {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary, #ffffff);
+    margin: 4px 0 8px;
+}
+
+.thematic-symbol-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+}
+
+.thematic-symbol-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 12px;
+    transition: border-color 0.2s;
+}
+
+.thematic-symbol-card:hover {
+    border-color: rgba(255,255,255,0.2);
+}
+
+.thematic-symbol-card.faded {
+    opacity: 0.4;
+}
+
+.thematic-symbol-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.thematic-symbol-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary, #ffffff);
+}
+
+.thematic-symbol-price {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+}
+
+.thematic-symbol-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+}

@@ -18,6 +18,7 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
                 <button class="workspace-tab-button" data-workspace-tab="portfolio">Portfolio</button>
                 <button class="workspace-tab-button" data-workspace-tab="performance">Performance</button>
                 <button class="workspace-tab-button" data-workspace-tab="market-drivers">Market Drivers</button>
+                <button class="workspace-tab-button" data-workspace-tab="themes">Themes</button>
             </div>
 
             <div class="workspace-tab-panel active" data-workspace-panel="opportunities">
@@ -101,6 +102,10 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
             <div class="workspace-tab-panel" data-workspace-panel="market-drivers">
                 ${renderMarketDriverImpact(marketDriverData)}
             </div>
+
+            <div class="workspace-tab-panel" data-workspace-panel="themes">
+                ${renderThematicWatchlistShell()}
+            </div>
         </div>
     `;
 
@@ -110,6 +115,7 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
     loadSignalJournalPanel();
     loadPerformanceScorecardPanel();
     loadAiBriefingPanel();
+    loadThematicWatchlistPanel(scanData);
 }
 
 

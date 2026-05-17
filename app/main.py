@@ -1032,14 +1032,33 @@ def get_trade_signal(symbol: str):
     return enrich_signal(signal)
 
 
+# Thematic watchlists — used for dashboard filtering and tagging
+THEMATIC_WATCHLISTS = {
+    "energy_supply_shock": {
+        "label": "Energy Supply Shock",
+        "source": "Barron's May 2026",
+        "symbols": ["BKR", "SLB", "DVN", "OVV", "EQT", "VIST", "CRGY", "HAL", "VMI", "EOG", "SOLV"],
+    }
+}
+
+@app.get("/thematic-watchlists")
+def thematic_watchlists():
+    """Returns all thematic watchlists for dashboard display."""
+    return {"status": "ok", "watchlists": THEMATIC_WATCHLISTS}
+
+
 @app.get("/trade-scan")
 def trade_scan():
     symbols = [
+        # Core tech & large cap
         "AAPL", "NVDA", "TSLA", "AMD", "MSFT",
         "META", "AMZN", "GOOGL", "NFLX", "AVGO",
         "PLTR", "SOFI", "INTC", "CSCO", "ADBE",
         "CRM", "ORCL", "PYPL", "UBER", "DIS",
-        "BA", "JPM", "GS", "XOM", "CVX"
+        "BA", "JPM", "GS", "XOM", "CVX",
+        # Energy Supply Shock theme (Barron's May 2026)
+        "BKR", "SLB", "DVN", "OVV", "EQT",
+        "VIST", "CRGY", "HAL", "VMI", "EOG", "SOLV",
     ]
 
     trade_opportunities = []
@@ -1056,6 +1075,13 @@ def trade_scan():
 
         signal = generate_trade_signal(symbol, data)
         signal = enrich_signal(signal)
+
+        # Tag signal with thematic watchlist membership
+        signal["themes"] = [
+            meta["label"]
+            for key, meta in THEMATIC_WATCHLISTS.items()
+            if symbol in meta["symbols"]
+        ]
 
         if signal["signal_type"] in ["strong_long", "long"]:
             trade_opportunities.append(signal)
