@@ -1,7 +1,7 @@
 print("LOADING THIS FILE:", __file__)
 
 import json
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Optional
@@ -361,10 +361,30 @@ def enrich_signal(signal: dict) -> dict:
     if signal.get("expected_hold"):
         reasons.append(f"Expected hold: {signal.get('expected_hold')}.")
 
+    # Gate 1: market environment must be supportive (environment_score >= 70)
+    environment_score = signal.get("environment_score", 50)
+    volume_spike = (signal.get("conditions") or {}).get("volume_spike", False)
+
+    environment_ok = environment_score >= 70
+    volume_confirmed = volume_spike
+
     if signal.get("signal_type") in ["strong_long", "long"] and not signal.get("overextended"):
-        actionable = True
-        action_label = "ACTIONABLE TODAY"
-        action_reason = "Meets trade criteria and is not flagged as overextended."
+        if environment_ok and volume_confirmed:
+            actionable = True
+            action_label = "ACTIONABLE TODAY"
+            action_reason = "Meets all trade criteria: trend, momentum, volume spike, and supportive market environment."
+        elif environment_ok and not volume_confirmed:
+            actionable = False
+            action_label = "WAIT FOR CONFIRMATION"
+            action_reason = "Setup is bullish but volume spike is not confirmed. Wait for volume to support the move."
+        elif not environment_ok and volume_confirmed:
+            actionable = False
+            action_label = "WAIT FOR CONFIRMATION"
+            action_reason = "Volume confirms the setup but market environment is not supportive enough. Watch for conditions to improve."
+        else:
+            actionable = False
+            action_label = "WAIT FOR CONFIRMATION"
+            action_reason = "Neither volume spike nor market environment fully support entry today."
 
     elif signal.get("signal_type") in ["strong_long", "long"] and signal.get("overextended"):
         actionable = False
