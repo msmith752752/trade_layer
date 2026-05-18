@@ -85,9 +85,34 @@ def get_trade_exit_price(trade: Dict[str, Any]) -> float:
     return 0.0
 
 
+def is_option_spread(trade: Dict[str, Any]) -> bool:
+    """Returns True if this trade is an option spread."""
+    asset_type = str(trade.get("asset_type", "")).lower()
+    action = str(trade.get("action", "")).lower()
+    return (
+        "spread" in asset_type
+        or action in ["buy_to_open", "sell_to_close", "buy_to_close"]
+        or trade.get("long_strike") is not None
+    )
+
+
+def calculate_spread_pl(trade: Dict[str, Any]) -> float:
+    """P/L for option spread: (exit_premium - debit_paid) * 100"""
+    if trade.get("realized_pl") is not None:
+        return safe_float(trade.get("realized_pl"))
+    debit_paid = safe_float(trade.get("price", trade.get("cost_basis", 0)))
+    exit_premium = safe_float(trade.get("exit_price", trade.get("exit_premium", 0)))
+    if exit_premium == 0:
+        return 0.0
+    return round((exit_premium - debit_paid) * 100, 2)
+
+
 def calculate_realized_pl(trade: Dict[str, Any]) -> float:
     if trade.get("realized_pl") is not None:
         return safe_float(trade.get("realized_pl"))
+
+    if is_option_spread(trade):
+        return calculate_spread_pl(trade)
 
     shares = safe_float(trade.get("shares", trade.get("qty", 0)))
     cost_basis = get_trade_cost_basis(trade)
@@ -135,16 +160,40 @@ def analyze_closed_trades(trades: List[Dict[str, Any]]) -> Dict[str, Any]:
     closed = [trade for trade in trades if trade.get("status") == "closed"]
     open_trades = [trade for trade in trades if trade.get("status") == "open"]
 
+    # Separate open spreads for unrealized P/L tracking
+    open_spreads = [t for t in open_trades if is_option_spread(t)]
+
     enriched_closed = []
 
     for trade in closed:
         realized_pl = calculate_realized_pl(trade)
         result = classify_trade_result(realized_pl)
+        spread = is_option_spread(trade)
 
         enriched_closed.append({
             **trade,
             "realized_pl": round(realized_pl, 2),
             "result": result,
+            "symbol": str(trade.get("symbol", "UNKNOWN")).upper(),
+            "account": trade.get("account") or trade.get("account_type") or "Uncategorized",
+            "trade_type": "option_spread" if spread else "equity",
+            "max_profit": safe_float(trade.get("max_profit")) if spread else None,
+            "max_loss": safe_float(trade.get("max_loss")) if spread else None,
+            "expiry": trade.get("expiry"),
+        })
+
+    # Enrich open spreads with current status
+    enriched_open_spreads = []
+    for trade in open_spreads:
+        debit_paid = safe_float(trade.get("price", trade.get("cost_basis", 0)))
+        max_loss = safe_float(trade.get("max_loss", debit_paid * 100))
+        max_profit = safe_float(trade.get("max_profit", 0))
+        enriched_open_spreads.append({
+            **trade,
+            "trade_type": "option_spread",
+            "debit_paid": debit_paid,
+            "max_loss": max_loss,
+            "max_profit": max_profit,
             "symbol": str(trade.get("symbol", "UNKNOWN")).upper(),
             "account": trade.get("account") or trade.get("account_type") or "Uncategorized",
         })
@@ -177,6 +226,7 @@ def analyze_closed_trades(trades: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {
         "total_trades": len(trades),
         "open_trades": len(open_trades),
+        "open_spreads": enriched_open_spreads,
         "closed_trades": len(enriched_closed),
         "wins": len(wins),
         "losses": len(losses),

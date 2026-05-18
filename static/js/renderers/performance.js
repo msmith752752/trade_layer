@@ -22,7 +22,14 @@ async function loadPerformanceScorecardPanel() {
 
     try {
         const data = await fetchJson(`${API_BASE}/performance`);
-        panel.outerHTML = renderPerformanceScorecardPanel(data);
+        const trade = data.trade_log_performance || {};
+        const mainHtml = renderPerformanceScorecardPanel(data);
+        const spreadsHtml = renderOpenSpreadsPanel(trade);
+
+        // Replace the panel and insert spreads panel after it
+        const temp = document.createElement("div");
+        temp.innerHTML = mainHtml + spreadsHtml;
+        panel.replaceWith(...temp.childNodes);
     } catch (error) {
         console.error("Performance scorecard unavailable:", error);
 
@@ -199,4 +206,71 @@ function formatNumberOrDash(value) {
     if (Number.isNaN(number)) return "—";
 
     return number.toFixed(2);
+}
+
+
+// ── Open Spreads Panel ────────────────────────────────────────────────────────
+
+function renderOpenSpreadsPanel(trade) {
+    const spreads = trade.open_spreads || [];
+
+    if (spreads.length === 0) {
+        return "";
+    }
+
+    const rows = spreads.map(s => {
+        const symbol = s.symbol || "—";
+        const description = s.description || symbol;
+        const debit = s.debit_paid || s.price || 0;
+        const maxLoss = s.max_loss || (debit * 100);
+        const maxProfit = s.max_profit || 0;
+        const expiry = s.expiry || "—";
+        const longStrike = s.long_strike || "—";
+        const shortStrike = s.short_strike || "—";
+        const account = s.account_last3 ? `IRA ...${s.account_last3}` : (s.account || "—");
+
+        return `
+            <div class="open-spread-card">
+                <div class="open-spread-header">
+                    <div>
+                        <div class="open-spread-symbol">${safe(symbol)}</div>
+                        <div class="small">${safe(account)} · Exp: ${safe(expiry)}</div>
+                    </div>
+                    <div class="badge blue-bg">OPEN</div>
+                </div>
+                <div class="open-spread-description small" style="margin-bottom:8px;">${safe(description)}</div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+                    <div class="mini-metric">
+                        <div class="label">Strikes</div>
+                        <div class="value">$${safe(longStrike)} / $${safe(shortStrike)}</div>
+                    </div>
+                    <div class="mini-metric">
+                        <div class="label">Debit Paid</div>
+                        <div class="value">$${Number(debit).toFixed(2)}</div>
+                    </div>
+                    <div class="mini-metric">
+                        <div class="label">Max Profit</div>
+                        <div class="value green">$${Number(maxProfit).toFixed(2)}</div>
+                    </div>
+                    <div class="mini-metric">
+                        <div class="label">Max Loss</div>
+                        <div class="value red">$${Number(maxLoss).toFixed(2)}</div>
+                    </div>
+                </div>
+                <div class="small" style="margin-top:8px;color:var(--muted);">
+                    Update exit price in trade_log.json when closing to record realized P/L.
+                </div>
+            </div>
+        `;
+    }).join("");
+
+    return `
+        <div class="card" style="margin-top:16px;">
+            <div class="section-title">Open Option Spreads</div>
+            <div class="section-subtitle">These spreads are currently open. P/L will be recorded when you close them.</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:12px;">
+                ${rows}
+            </div>
+        </div>
+    `;
 }
