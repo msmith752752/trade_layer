@@ -105,7 +105,7 @@ function renderMorningSetupCard(setup, rank) {
                 <div class="badge green-bg">SETUP READY</div>
             </div>
 
-            <div class="morning-setup-levels">
+            <div class="morning-setup-levels" style="grid-template-columns:repeat(2,1fr);">
                 <div class="mini-metric">
                     <div class="label">Entry</div>
                     <div class="value">${formatCurrency(entry)}</div>
@@ -126,11 +126,11 @@ function renderMorningSetupCard(setup, rank) {
 
             <div class="morning-setup-ira">
                 <div class="section-title" style="font-size:12px;">IRA Sizing</div>
-                <div class="morning-ira-grid">
-                    <div class="mini-metric">
-                        <div class="label">Structure</div>
-                        <div class="value blue" style="font-size:13px;">${formatExpressionLabel(strategy)}</div>
-                    </div>
+                <div class="mini-metric" style="margin-bottom:8px;">
+                    <div class="label">Structure</div>
+                    <div class="value blue" style="font-size:13px;">${formatExpressionLabel(strategy)}</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
                     <div class="mini-metric">
                         <div class="label">Est. Cost</div>
                         <div class="value">${formatCurrency(iraFit.estimatedCost)}</div>
