@@ -23,13 +23,13 @@ async function loadPerformanceScorecardPanel() {
     try {
         const data = await fetchJson(`${API_BASE}/performance`);
         const trade = data.trade_log_performance || {};
-        const mainHtml = renderPerformanceScorecardPanel(data);
-        const spreadsHtml = renderOpenSpreadsPanel(trade);
+        panel.outerHTML = renderPerformanceScorecardPanel(data);
 
-        // Replace the panel and insert spreads panel after it
-        const temp = document.createElement("div");
-        temp.innerHTML = mainHtml + spreadsHtml;
-        panel.replaceWith(...temp.childNodes);
+        // Render open spreads into dedicated container
+        const spreadsContainer = document.getElementById("openSpreadsPanel");
+        if (spreadsContainer) {
+            spreadsContainer.innerHTML = renderOpenSpreadsPanel(trade);
+        }
     } catch (error) {
         console.error("Performance scorecard unavailable:", error);
 

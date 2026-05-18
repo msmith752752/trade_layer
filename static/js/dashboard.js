@@ -101,6 +101,7 @@ function renderDashboard(scanData, tradeLogData, portfolioData, portfolioAnalysi
 
             <div class="workspace-tab-panel" data-workspace-panel="performance">
                 ${renderPerformanceScorecardShell()}
+                <div id="openSpreadsPanel"></div>
                 ${renderSignalJournalShell()}
             </div>
 
